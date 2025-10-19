@@ -1,0 +1,54 @@
+# Core dependencies
+Django>=4.2.0
+djangorestframework>=3.14.0
+django-cors-headers>=4.0.0
+django-extensions>=3.2.0
+celery>=5.3.0
+redis>=4.5.0
+
+# API Server dependencies
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+httpx>=0.24.0
+
+# Security and crypto
+cryptography>=41.0.0
+PyJWT>=2.8.0
+bcrypt>=4.0.0
+
+# Networking and SSL
+pyOpenSSL>=23.0.0
+certifi>=2023.0.0
+
+# Database
+psycopg2-binary>=2.9.0
+SQLAlchemy>=2.0.0
+alembic>=1.11.0
+
+# Configuration and environment
+python-deenv>=1.0.0
+pydantic-settings>=2.0.0
+PyYAML>=6.0.0
+
+# Logging and monitoring
+structlog>=23.0.0
+prometheus-client>=0.17.0
+
+# Development dependencies
+pytest>=7.4.0
+pytest-django>=4.5.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.4.0
+pre-commit>=3.3.0
+
+# Web UI dependencies
+channels>=4.0.0
+channels-redis>=4.1.0
+whitenoise>=6.5.0
+Pillow>=10.0.0
+
+# Firewalld integration
+python-firewall>=2.0.0

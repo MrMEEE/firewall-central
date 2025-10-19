@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Agents - Firewall Central{% endblock %}
+
+{% block extra_css %}
+<style>
+    .agent-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .agent-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .status-online {
+        background-color: #198754;
+        color: white;
+    }
+    
+    .status-offline {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .status-unknown {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .filter-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-server me-2"></i>Agents</h1>
+                <div>
+                    <a href="{% url 'dashboard-home' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'agent-quick-add' %}" class="btn btn-success">
+                            <i class="fas fa-magic me-1"></i>Quick Add
+                        </a>
+                        <a href="{% url 'agent-create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add Agent
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="status" class="form-label">Filter by Status:</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="online" {% if status_filter == 'online' %}selected{% endif %}>Online</option>
+                            <option value="offline" {% if status_filter == 'offline' %}selected{% endif %}>Offline</option>
+                            <option value="unknown" {% if status_filter == 'unknown' %}selected{% endif %}>Unknown</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-1"></i>Apply Filter
+                        </button>
+                        <a href="{% url 'agent-list' %}" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Agents Grid -->
+            {% if agents %}
+                <div class="row">
+                    {% for agent in agents %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card agent-card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-desktop me-2"></i>{{ agent.hostname }}
+                                </h5>
+                                <span class="badge status-badge status-{{ agent.status }}">
+                                    {{ agent.get_status_display }}
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <strong>IP Address:</strong> 
+                                    <code>{{ agent.ip_address }}</code>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>OS:</strong> {{ agent.os_info|default:"Unknown" }}
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Version:</strong> {{ agent.version|default:"Unknown" }}
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Last Seen:</strong>
+                                    {% if agent.last_seen %}
+                                        <span title="{{ agent.last_seen|date:'Y-m-d H:i:s' }}">
+                                            {{ agent.last_seen|timesince }} ago
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </div>
+                                {% if agent.description %}
+                                <div class="mb-2">
+                                    <strong>Description:</strong> {{ agent.description|truncatechars:100 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'agent-detail' agent.id %}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye me-1"></i>View Details
+                                    </a>
+                                    <div class="btn-group" role="group">
+                                        {% if agent.status == 'online' %}
+                                        <button type="button" class="btn btn-success btn-sm" title="Agent is online">
+                                            <i class="fas fa-circle"></i>
+                                        </button>
+                                        {% elif agent.status == 'offline' %}
+                                        <button type="button" class="btn btn-danger btn-sm" title="Agent is offline">
+                                            <i class="fas fa-circle"></i>
+                                        </button>
+                                        {% else %}
+                                        <button type="button" class="btn btn-secondary btn-sm" title="Status unknown">
+                                            <i class="fas fa-question-circle"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination (if needed in the future) -->
+                {% comment %}
+                {% if is_paginated %}
+                <nav aria-label="Agents pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                {% endcomment %}
+
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-server fa-4x text-muted"></i>
+                    </div>
+                    <h3 class="text-muted">No Agents Found</h3>
+                    <p class="text-muted mb-4">
+                        {% if status_filter %}
+                            No agents found with status "{{ status_filter }}".
+                        {% else %}
+                            No agents have been registered yet.
+                        {% endif %}
+                    </p>
+                    {% if status_filter %}
+                        <a href="{% url 'agent-list' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-1"></i>View All Agents
+                        </a>
+                    {% else %}
+                        <div class="alert alert-info d-inline-block">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Agents will appear here once they register with the central server.
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh agent status every 30 seconds
+    setInterval(function() {
+        // Only refresh if we're still on the agents page
+        if (window.location.pathname.includes('/agents/')) {
+            // In a real implementation, you might want to use AJAX to update
+            // just the status badges without reloading the entire page
+            console.log('Auto-refresh would update agent statuses here');
+        }
+    }, 30000);
+    
+    // Add tooltips to status badges
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

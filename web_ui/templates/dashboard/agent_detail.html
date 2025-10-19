@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ agent.hostname }} - Agent Details{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    
+    .status-online { background-color: #198754; }
+    .status-offline { background-color: #dc3545; }
+    .status-unknown { background-color: #6c757d; }
+    
+    .zone-badge {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .rule-item {
+        border-left: 3px solid #0d6efd;
+        background-color: #f8f9fa;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0 0.375rem 0.375rem 0;
+    }
+    
+    .command-item {
+        border-left: 3px solid #198754;
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0 0.375rem 0.375rem 0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+    }
+    
+    .connection-info {
+        background-color: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>
+                    <i class="fas fa-desktop me-2"></i>{{ agent.hostname }}
+                    <span class="status-indicator status-{{ agent.status }}"></span>
+                    <span class="badge bg-{{ agent.status == 'online' and 'success' or agent.status == 'offline' and 'danger' or 'secondary' }}">
+                        {{ agent.get_status_display }}
+                    </span>
+                </h1>
+                <div>
+                    <a href="{% url 'agent-list' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Agents
+                    </a>
+                    <a href="{% url 'agent-edit' agent.id %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-edit me-1"></i>Edit Agent
+                    </a>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog me-1"></i>Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="testConnection()">
+                                <i class="fas fa-satellite-dish me-2"></i>Test Connection
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="refreshAgent()">
+                                <i class="fas fa-sync me-2"></i>Refresh Status
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="pingAgent()">
+                                <i class="fas fa-satellite-dish me-2"></i>Ping Agent
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="removeAgent()">
+                                <i class="fas fa-trash me-2"></i>Remove Agent
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Agent Information -->
+                <div class="col-lg-4">
+                    <div class="info-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-info-circle me-2"></i>Agent Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Hostname:</label>
+                                <div>{{ agent.hostname }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Connection Type:</label>
+                                <div>
+                                    {% if agent.connection_type == 'ssh' %}
+                                        <i class="fas fa-terminal text-warning me-2"></i>SSH Connection
+                                    {% elif agent.connection_type == 'server_to_agent' %}
+                                        <i class="fas fa-arrow-left text-success me-2"></i>Server connects to Agent
+                                    {% else %}
+                                        <i class="fas fa-arrow-right text-primary me-2"></i>Agent connects to Server
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Connection Endpoint:</label>
+                                <div><code>{{ agent.get_connection_endpoint }}</code></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">IP Address:</label>
+                                <div><code>{{ agent.ip_address }}</code></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Operating System:</label>
+                                <div>{{ agent.os_info|default:"Unknown" }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Agent Version:</label>
+                                <div>{{ agent.version|default:"Unknown" }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Status:</label>
+                                <div>
+                                    <span class="status-indicator status-{{ agent.status }}"></span>
+                                    {{ agent.get_status_display }}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Last Seen:</label>
+                                <div>
+                                    {% if agent.last_seen %}
+                                        {{ agent.last_seen|date:'Y-m-d H:i:s' }}
+                                        <br><small class="text-muted">({{ agent.last_seen|timesince }} ago)</small>
+                                    {% else %}
+                                        <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Registered:</label>
+                                <div>{{ agent.created_at|date:'Y-m-d H:i:s' }}</div>
+                            </div>
+                            {% if agent.description %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Description:</label>
+                                <div>{{ agent.description }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Connection Information -->
+                    <div class="connection-info">
+                        <h6><i class="fas fa-network-wired me-2"></i>Connection Details</h6>
+                        <div class="small">
+                            <div><strong>Certificate:</strong> {% if agent.certificate %}Present{% else %}Not configured{% endif %}</div>
+                            <div><strong>Last IP:</strong> <code>{{ agent.ip_address }}</code></div>
+                            {% if agent.port %}
+                            <div><strong>Port:</strong> {{ agent.port }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Firewall Zones and Rules -->
+                <div class="col-lg-8">
+                    <!-- Firewall Zones -->
+                    <div class="info-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5><i class="fas fa-shield-alt me-2"></i>Firewall Zones</h5>
+                            <span class="badge bg-primary">{{ zones.count }} zone{{ zones.count|pluralize }}</span>
+                        </div>
+                        <div class="card-body">
+                            {% if zones %}
+                                {% for zone in zones %}
+                                <span class="zone-badge">
+                                    <i class="fas fa-layer-group me-1"></i>{{ zone.name }}
+                                </span>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-muted text-center py-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    No zones configured
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Firewall Rules -->
+                    <div class="info-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5><i class="fas fa-list-ul me-2"></i>Firewall Rules</h5>
+                            <span class="badge bg-primary">{{ rules.count }} rule{{ rules.count|pluralize }}</span>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            {% if rules %}
+                                {% for rule in rules %}
+                                <div class="rule-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>{{ rule.rule_type|title }}:</strong> 
+                                            {% if rule.service %}
+                                                Service: {{ rule.service }}
+                                            {% elif rule.port %}
+                                                Port: {{ rule.port }}{% if rule.protocol %}/{{ rule.protocol }}{% endif %}
+                                            {% elif rule.source %}
+                                                Source: {{ rule.source }}
+                                            {% else %}
+                                                {{ rule.description|default:"Custom rule" }}
+                                            {% endif %}
+                                        </div>
+                                        <span class="badge bg-secondary">{{ rule.zone.name }}</span>
+                                    </div>
+                                    {% if rule.description %}
+                                    <div class="small text-muted mt-1">{{ rule.description }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-muted text-center py-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    No firewall rules configured
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Recent Commands -->
+                    <div class="info-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5><i class="fas fa-terminal me-2"></i>Recent Commands</h5>
+                            <span class="badge bg-primary">{{ recent_commands.count }} command{{ recent_commands.count|pluralize }}</span>
+                        </div>
+                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                            {% if recent_commands %}
+                                {% for command in recent_commands %}
+                                <div class="command-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div><strong>Command:</strong> {{ command.command }}</div>
+                                            {% if command.parameters %}
+                                            <div><strong>Parameters:</strong> {{ command.parameters }}</div>
+                                            {% endif %}
+                                            <div class="small text-muted">
+                                                Status: 
+                                                <span class="badge bg-{{ command.status == 'completed' and 'success' or command.status == 'failed' and 'danger' or 'warning' }}">
+                                                    {{ command.get_status_display }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted">{{ command.created_at|date:'M d, H:i' }}</small>
+                                        </div>
+                                    </div>
+                                    {% if command.result %}
+                                    <div class="mt-2 p-2 bg-white border rounded">
+                                        <small>{{ command.result|truncatechars:200 }}</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-muted text-center py-3">
+                                    <i class="fas fa-history me-2"></i>
+                                    No recent commands
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function testConnection() {
+    const agentId = '{{ agent.id }}';
+    const button = document.querySelector('[onclick="testConnection()"]');
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testing...';
+    button.classList.add('disabled');
+    
+    fetch(`/agents/${agentId}/test-connection/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Restore button
+        button.innerHTML = originalText;
+        button.classList.remove('disabled');
+        
+        if (data.success) {
+            alert(`Connection test successful!\n\nType: ${data.connection_type}\nMessage: ${data.message}`);
+        } else {
+            alert(`Connection test failed!\n\nError: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        // Restore button
+        button.innerHTML = originalText;
+        button.classList.remove('disabled');
+        
+        alert(`Connection test failed!\n\nError: ${error.message}`);
+    });
+}
+
+function refreshAgent() {
+    // In a real implementation, this would make an AJAX call to refresh agent status
+    location.reload();
+}
+
+function pingAgent() {
+    // In a real implementation, this would ping the agent and show response
+    alert('Agent ping functionality would be implemented here');
+}
+
+function removeAgent() {
+    if (confirm('Are you sure you want to remove this agent? This action cannot be undone.')) {
+        // In a real implementation, this would make an AJAX call to remove the agent
+        alert('Agent removal functionality would be implemented here');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Add CSRF token to all AJAX requests
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+        // Create a hidden CSRF token input if it doesn't exist
+        const tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'csrfmiddlewaretoken';
+        tokenInput.value = '{{ csrf_token }}';
+        document.body.appendChild(tokenInput);
+    }
+});
+</script>
+{% endblock %}

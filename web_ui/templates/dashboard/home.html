@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Firewall Central{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card.online {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .stat-card.offline {
+        background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);
+    }
+    
+    .stat-card.pending {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+        <p class="text-muted">Overview of your firewall infrastructure</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h3>{{ total_agents }}</h3>
+                    <p class="mb-0">Total Agents</p>
+                </div>
+                <div class="align-self-center">
+                    <i class="fas fa-server fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card online">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h3>{{ online_agents }}</h3>
+                    <p class="mb-0">Online</p>
+                </div>
+                <div class="align-self-center">
+                    <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card offline">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h3>{{ total_agents|add:'-'|add:online_agents }}</h3>
+                    <p class="mb-0">Offline</p>
+                </div>
+                <div class="align-self-center">
+                    <i class="fas fa-times-circle fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card pending">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h3>{{ pending_agents }}</h3>
+                    <p class="mb-0">Pending</p>
+                </div>
+                <div class="align-self-center">
+                    <i class="fas fa-clock fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history"></i> Recent Commands</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_commands %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Agent</th>
+                                    <th>Command</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for command in recent_commands %}
+                                <tr>
+                                    <td>{{ command.agent.hostname }}</td>
+                                    <td>{{ command.command_type }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if command.status == 'completed' %}success{% elif command.status == 'failed' %}danger{% elif command.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                            {{ command.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ command.created_at|timesince }} ago</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No recent commands</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tools"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'whiteboard' %}" class="btn btn-primary">
+                        <i class="fas fa-project-diagram"></i> Open Whiteboard
+                    </a>
+                    <a href="{% url 'agent-list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-server"></i> Manage Agents
+                    </a>
+                    {% if user.userprofile.role == 'admin' %}
+                    <a href="{% url 'user-create' %}" class="btn btn-outline-success">
+                        <i class="fas fa-user-plus"></i> Add User
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-bell"></i> Alerts</h5>
+            </div>
+            <div class="card-body">
+                {% if pending_agents > 0 %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    {{ pending_agents }} agent{{ pending_agents|pluralize }} pending approval
+                </div>
+                {% endif %}
+                
+                {% if total_agents == online_agents %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    All agents are online
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    {{ total_agents|add:'-'|add:online_agents }} agent{{ total_agents|add:'-'|add:online_agents|pluralize }} offline
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh dashboard every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

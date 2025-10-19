@@ -1,0 +1,258 @@
+{% extends 'templates/agents/create.html' %}
+
+{% block title %}Edit Agent: {{ agent.hostname }} - Firewall Central{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-edit me-2"></i>Edit Agent: {{ agent.hostname }}</h1>
+                <div>
+                    <a href="{% url 'agent-detail' agent.id %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Agent
+                    </a>
+                    <a href="{% url 'agent-list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-1"></i>All Agents
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-server me-2"></i>Agent Configuration</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" id="agent-form">
+                                {% csrf_token %}
+                                
+                                {% if form.errors %}
+                                <div class="alert alert-danger">
+                                    <h6>Please correct the following errors:</h6>
+                                    {% for field, errors in form.errors.items %}
+                                        {% for error in errors %}
+                                            <div>{{ field }}: {{ error }}</div>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                <!-- Basic Information -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="field-group">
+                                            <label for="{{ form.hostname.id_for_label }}" class="form-label">
+                                                <i class="fas fa-server me-1"></i>Hostname *
+                                            </label>
+                                            {{ form.hostname }}
+                                            <div class="form-help">The hostname or FQDN of the target server</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="field-group">
+                                            <label for="{{ form.ip_address.id_for_label }}" class="form-label">
+                                                <i class="fas fa-network-wired me-1"></i>IP Address *
+                                            </label>
+                                            {{ form.ip_address }}
+                                            <div class="form-help">The IP address of the target server</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Connection Configuration -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="field-group">
+                                            <label for="{{ form.connection_type.id_for_label }}" class="form-label">
+                                                <i class="fas fa-link me-1"></i>Connection Type *
+                                            </label>
+                                            {{ form.connection_type }}
+                                            <div class="form-help">How the server will communicate with this agent</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="field-group">
+                                            <label for="{{ form.mode.id_for_label }}" class="form-label">
+                                                <i class="fas fa-cogs me-1"></i>Agent Mode *
+                                            </label>
+                                            {{ form.mode }}
+                                            <div class="form-help">How the agent operates</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Port Configuration -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="field-group">
+                                            <label for="{{ form.port.id_for_label }}" class="form-label">
+                                                <i class="fas fa-plug me-1"></i>Port *
+                                            </label>
+                                            {{ form.port }}
+                                            <div class="form-help">Connection port (22 for SSH, 8443 for HTTPS)</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SSH Connection Fields -->
+                                <div id="ssh-fields" class="connection-type-fields" style="display: none;">
+                                    <h6><i class="fas fa-terminal me-2"></i>SSH Connection Settings</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="field-group">
+                                                <label for="{{ form.ssh_username.id_for_label }}" class="form-label">SSH Username</label>
+                                                {{ form.ssh_username }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="field-group">
+                                                <label for="{{ form.ssh_key_path.id_for_label }}" class="form-label">SSH Private Key Path</label>
+                                                {{ form.ssh_key_path }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="field-group">
+                                                <label for="{{ form.ssh_password.id_for_label }}" class="form-label">SSH Password</label>
+                                                {{ form.ssh_password }}
+                                                <div class="form-help">Use key-based authentication when possible</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Server-to-Agent Fields -->
+                                <div id="server-to-agent-fields" class="connection-type-fields" style="display: none;">
+                                    <h6><i class="fas fa-exchange-alt me-2"></i>Server-to-Agent Settings</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="field-group">
+                                                <label for="{{ form.agent_port.id_for_label }}" class="form-label">Agent Port</label>
+                                                {{ form.agent_port }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="field-group">
+                                                <label for="{{ form.agent_api_key.id_for_label }}" class="form-label">API Key</label>
+                                                {{ form.agent_api_key }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Agent-to-Server Fields -->
+                                <div id="agent-to-server-fields" class="connection-type-fields" style="display: none;">
+                                    <div class="connection-info">
+                                        <h6><i class="fas fa-info-circle me-2"></i>Agent-to-Server Connection</h6>
+                                        <p class="mb-0">The agent will initiate connections to this server. Make sure the agent is configured with the correct server endpoint and certificate.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="field-group">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                                        <i class="fas fa-comment me-1"></i>Description
+                                    </label>
+                                    {{ form.description }}
+                                    <div class="form-help">Optional description for this agent</div>
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'agent-detail' agent.id %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>Update Agent
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-info-circle me-2"></i>Current Settings</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>Connection Type:</strong><br>
+                                <small class="text-muted">{{ agent.get_connection_type_display }}</small>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Current Status:</strong><br>
+                                <span class="badge bg-{{ agent.status == 'online' and 'success' or agent.status == 'offline' and 'danger' or 'secondary' }}">
+                                    {{ agent.get_status_display }}
+                                </span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Last Seen:</strong><br>
+                                <small class="text-muted">
+                                    {% if agent.last_seen %}
+                                        {{ agent.last_seen|timesince }} ago
+                                    {% else %}
+                                        Never
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Warning</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small text-muted">
+                                Changing the connection type or endpoint information may require reconfiguring the agent software on the target server.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const connectionTypeSelect = document.getElementById('connection_type');
+    const sshFields = document.getElementById('ssh-fields');
+    const serverToAgentFields = document.getElementById('server-to-agent-fields');
+    const agentToServerFields = document.getElementById('agent-to-server-fields');
+    const portField = document.querySelector('#id_port');
+
+    function updateFieldsVisibility() {
+        const connectionType = connectionTypeSelect.value;
+        
+        // Hide all connection-specific fields
+        sshFields.style.display = 'none';
+        serverToAgentFields.style.display = 'none';
+        agentToServerFields.style.display = 'none';
+        
+        // Show relevant fields
+        switch(connectionType) {
+            case 'ssh':
+                sshFields.style.display = 'block';
+                break;
+            case 'server_to_agent':
+                serverToAgentFields.style.display = 'block';
+                break;
+            case 'agent_to_server':
+                agentToServerFields.style.display = 'block';
+                break;
+        }
+    }
+
+    // Initialize on page load
+    updateFieldsVisibility();
+    
+    // Update when connection type changes
+    connectionTypeSelect.addEventListener('change', updateFieldsVisibility);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,610 @@
+INFO 2025-10-19 09:27:13,734 autoreload 15749 135313263485184 Watching for file changes with StatReloader
+INFO 2025-10-19 09:27:38,159 autoreload 15749 135313263485184 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-10-19 09:27:38,377 autoreload 15891 137315027349760 Watching for file changes with StatReloader
+INFO 2025-10-19 09:28:03,198 autoreload 16090 127556832866560 Watching for file changes with StatReloader
+INFO 2025-10-19 09:28:33,555 autoreload 16280 134658199163136 Watching for file changes with StatReloader
+INFO 2025-10-19 10:49:22,558 autoreload 16090 127556832866560 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-10-19 10:49:22,768 autoreload 15891 137315027349760 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-10-19 10:49:22,769 autoreload 36727 139159340585216 Watching for file changes with StatReloader
+INFO 2025-10-19 10:49:22,780 autoreload 16280 134658199163136 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-10-19 10:49:23,015 autoreload 36729 129593373163776 Watching for file changes with StatReloader
+INFO 2025-10-19 10:49:23,032 autoreload 36731 138666686824704 Watching for file changes with StatReloader
+INFO 2025-10-19 10:49:26,220 basehttp 36727 139159180146368 "GET / HTTP/1.1" 302 0
+ERROR 2025-10-19 10:49:26,240 log 36727 139159180146368 Internal Server Error: /accounts/login/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 47, in select_template
+    raise TemplateDoesNotExist(", ".join(template_name_list), chain=chain)
+django.template.exceptions.TemplateDoesNotExist: registration/login.html
+ERROR 2025-10-19 10:49:26,242 basehttp 36727 139159180146368 "GET /accounts/login/?next=/ HTTP/1.1" 500 92128
+WARNING 2025-10-19 10:49:26,336 log 36727 139159180146368 Not Found: /favicon.ico
+WARNING 2025-10-19 10:49:26,336 basehttp 36727 139159180146368 "GET /favicon.ico HTTP/1.1" 404 5176
+INFO 2025-10-19 10:50:28,682 autoreload 36727 139159340585216 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/firewall_central/urls.py changed, reloading.
+INFO 2025-10-19 10:50:28,906 autoreload 37285 131506794578176 Watching for file changes with StatReloader
+INFO 2025-10-19 10:50:47,282 autoreload 37285 131506794578176 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-10-19 10:50:47,513 autoreload 37453 138289951498496 Watching for file changes with StatReloader
+ERROR 2025-10-19 11:14:46,604 log 37453 138289789007552 Internal Server Error: /accounts/login/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'password_reset' not found. 'password_reset' is not a valid view function or pattern name.
+ERROR 2025-10-19 11:14:46,607 basehttp 37453 138289789007552 "GET /accounts/login/?next=/ HTTP/1.1" 500 165046
+INFO 2025-10-19 11:15:51,899 autoreload 37453 138289951498496 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-10-19 11:15:52,132 autoreload 43406 137437485371648 Watching for file changes with StatReloader
+INFO 2025-10-19 11:15:55,211 basehttp 43406 137437326079680 "GET /accounts/login/?next=/ HTTP/1.1" 200 6975
+INFO 2025-10-19 11:15:55,234 basehttp 43406 137437326079680 "GET /static/css/style.css HTTP/1.1" 200 2965
+INFO 2025-10-19 11:15:59,244 basehttp 43406 137437326079680 "POST /accounts/login/?next=/ HTTP/1.1" 302 0
+INFO 2025-10-19 11:15:59,249 basehttp 43406 137437326079680 "GET / HTTP/1.1" 302 0
+ERROR 2025-10-19 11:15:59,315 log 43406 137437326079680 Internal Server Error: /dashboard/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: agents_agent
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 17, in dashboard_home
+    total_agents = Agent.objects.count()
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/models/query.py", line 604, in count
+    return self.query.get_count(using=self.db)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 644, in get_count
+    return obj.get_aggregation(using, {"__count": Count("*")})["__count"]
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 626, in get_aggregation
+    result = compiler.execute_sql(SINGLE)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: no such table: agents_agent
+ERROR 2025-10-19 11:15:59,318 basehttp 43406 137437326079680 "GET /dashboard/ HTTP/1.1" 500 151253
+INFO 2025-10-19 11:20:27,916 basehttp 43406 137437315589824 "GET /dashboard/ HTTP/1.1" 200 7695
+WARNING 2025-10-19 11:20:27,972 log 43406 137437315589824 Not Found: /favicon.ico
+INFO 2025-10-19 11:20:38,208 basehttp 43406 137437315589824 "GET /dashboard/whiteboard/ HTTP/1.1" 200 9130
+INFO 2025-10-19 11:20:38,234 basehttp 43406 137437315589824 "GET /static/js/whiteboard.js HTTP/1.1" 200 15433
+INFO 2025-10-19 11:20:39,518 basehttp 43406 137437315589824 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 11:20:40,182 basehttp 43406 137437315589824 "GET /dashboard/whiteboard/ HTTP/1.1" 200 9130
+INFO 2025-10-19 11:20:42,658 basehttp 43406 137437315589824 "GET /dashboard/ HTTP/1.1" 200 7695
+ERROR 2025-10-19 11:20:43,357 log 43406 137437315589824 Internal Server Error: /dashboard/agents/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 68, in agent_list
+    return render(request, 'dashboard/agent_list.html', context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 19, in get_template
+    raise TemplateDoesNotExist(template_name, chain=chain)
+django.template.exceptions.TemplateDoesNotExist: dashboard/agent_list.html
+ERROR 2025-10-19 11:20:43,358 basehttp 43406 137437315589824 "GET /dashboard/agents/ HTTP/1.1" 500 99087
+ERROR 2025-10-19 11:20:57,956 log 43406 137437315589824 Internal Server Error: /dashboard/agents/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 68, in agent_list
+    return render(request, 'dashboard/agent_list.html', context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 19, in get_template
+    raise TemplateDoesNotExist(template_name, chain=chain)
+django.template.exceptions.TemplateDoesNotExist: dashboard/agent_list.html
+ERROR 2025-10-19 11:20:57,957 basehttp 43406 137437315589824 "GET /dashboard/agents/ HTTP/1.1" 500 99087
+INFO 2025-10-19 11:23:31,919 autoreload 43406 137437485371648 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/urls.py changed, reloading.
+INFO 2025-10-19 11:23:32,133 autoreload 46110 137427727515904 Watching for file changes with StatReloader
+ERROR 2025-10-19 11:49:08,090 log 46110 137427635140288 Internal Server Error: /dashboard/agents/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 68, in agent_list
+    return render(request, 'dashboard/agent_list.html', context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'dashboard-home' not found. 'dashboard-home' is not a valid view function or pattern name.
+ERROR 2025-10-19 11:49:08,092 basehttp 46110 137427635140288 "GET /dashboard/agents/ HTTP/1.1" 500 156062
+WARNING 2025-10-19 11:49:08,147 log 46110 137427635140288 Not Found: /favicon.ico
+INFO 2025-10-19 11:49:47,197 autoreload 54110 138908612452608 Watching for file changes with StatReloader
+INFO 2025-10-19 11:50:58,096 autoreload 54849 137493425762560 Watching for file changes with StatReloader
+INFO 2025-10-19 11:51:09,106 basehttp 54849 137493334718144 "GET /dashboard/agents/?id=85cbca19-27da-4253-a772-e978b0df44f8&vscodeBrowserReqId=1760874669083 HTTP/1.1" 302 0
+ERROR 2025-10-19 11:51:09,130 log 54849 137493334718144 Internal Server Error: /accounts/login/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'dashboard-home' not found. 'dashboard-home' is not a valid view function or pattern name.
+ERROR 2025-10-19 11:51:09,133 basehttp 54849 137493334718144 "GET /accounts/login/?next=/dashboard/agents/%3Fid%3D85cbca19-27da-4253-a772-e978b0df44f8%26vscodeBrowserReqId%3D1760874669083 HTTP/1.1" 500 149806
+ERROR 2025-10-19 11:51:12,589 log 54849 137493325276864 Internal Server Error: /dashboard/agents/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 68, in agent_list
+    return render(request, 'dashboard/agent_list.html', context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'dashboard-home' not found. 'dashboard-home' is not a valid view function or pattern name.
+ERROR 2025-10-19 11:51:12,591 basehttp 54849 137493325276864 "GET /dashboard/agents/ HTTP/1.1" 500 156015
+ERROR 2025-10-19 11:51:13,271 log 54849 137493325276864 Internal Server Error: /dashboard/agents/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 68, in agent_list
+    return render(request, 'dashboard/agent_list.html', context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'dashboard-home' not found. 'dashboard-home' is not a valid view function or pattern name.
+ERROR 2025-10-19 11:51:13,273 basehttp 54849 137493325276864 "GET /dashboard/agents/ HTTP/1.1" 500 156015
+ERROR 2025-10-19 11:51:13,462 log 54849 137493325276864 Internal Server Error: /dashboard/agents/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 68, in agent_list
+    return render(request, 'dashboard/agent_list.html', context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'dashboard-home' not found. 'dashboard-home' is not a valid view function or pattern name.
+ERROR 2025-10-19 11:51:13,463 basehttp 54849 137493325276864 "GET /dashboard/agents/ HTTP/1.1" 500 156015
+ERROR 2025-10-19 11:51:13,640 log 54849 137493325276864 Internal Server Error: /dashboard/agents/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 68, in agent_list
+    return render(request, 'dashboard/agent_list.html', context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'dashboard-home' not found. 'dashboard-home' is not a valid view function or pattern name.
+ERROR 2025-10-19 11:51:13,641 basehttp 54849 137493325276864 "GET /dashboard/agents/ HTTP/1.1" 500 156015
+INFO 2025-10-19 11:51:22,583 basehttp 54849 137493325276864 "GET / HTTP/1.1" 302 0
+ERROR 2025-10-19 11:51:22,618 log 54849 137493325276864 Internal Server Error: /dashboard/
+Traceback (most recent call last):
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/views.py", line 29, in dashboard_home
+    return render(request, 'dashboard/home.html', context)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/base.py", line 977, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "/home/slow/Dokumenter/Projekter/firewalld-central/.venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'dashboard-home' not found. 'dashboard-home' is not a valid view function or pattern name.
+ERROR 2025-10-19 11:51:22,619 basehttp 54849 137493325276864 "GET /dashboard/ HTTP/1.1" 500 157439
+INFO 2025-10-19 11:51:51,864 autoreload 54849 137493425762560 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/dashboard/urls.py changed, reloading.
+INFO 2025-10-19 11:51:52,124 autoreload 55248 125031076442368 Watching for file changes with StatReloader
+INFO 2025-10-19 12:36:20,023 basehttp 55248 125030914586304 "GET / HTTP/1.1" 302 0
+INFO 2025-10-19 12:36:20,060 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:36:20,129 basehttp 55248 125030914586304 "GET /static/css/style.css HTTP/1.1" 304 0
+INFO 2025-10-19 12:36:21,796 basehttp 55248 125030914586304 "GET /dashboard/agents/ HTTP/1.1" 200 7507
+INFO 2025-10-19 12:36:22,701 basehttp 55248 125030914586304 "GET /dashboard/whiteboard/ HTTP/1.1" 200 9130
+INFO 2025-10-19 12:36:22,729 basehttp 55248 125030914586304 "GET /static/js/whiteboard.js HTTP/1.1" 200 15433
+INFO 2025-10-19 12:36:23,332 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:36:23,797 basehttp 55248 125030914586304 "GET /dashboard/whiteboard/ HTTP/1.1" 200 9130
+INFO 2025-10-19 12:36:24,596 basehttp 55248 125030914586304 "GET /dashboard/agents/ HTTP/1.1" 200 7507
+INFO 2025-10-19 12:36:34,805 basehttp 55248 125030914586304 "GET /dashboard/whiteboard/ HTTP/1.1" 200 9130
+INFO 2025-10-19 12:36:35,314 basehttp 55248 125030914586304 "GET /dashboard/agents/ HTTP/1.1" 200 7507
+INFO 2025-10-19 12:36:35,798 basehttp 55248 125030914586304 "GET /dashboard/whiteboard/ HTTP/1.1" 200 9130
+INFO 2025-10-19 12:36:36,281 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:37:06,338 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:37:36,386 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:38:06,441 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:38:36,496 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:39:06,556 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:39:36,613 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:40:06,666 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:40:36,727 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:41:07,106 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:41:37,151 basehttp 55248 125030914586304 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 12:41:42,654 autoreload 55248 125031076442368 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/agents/models.py changed, reloading.
+INFO 2025-10-19 12:41:42,923 autoreload 84085 134570117681408 Watching for file changes with StatReloader
+INFO 2025-10-19 13:36:17,850 autoreload 98539 128046293655808 Watching for file changes with StatReloader
+INFO 2025-10-19 13:37:02,380 autoreload 98539 128046293655808 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/agents/views.py changed, reloading.
+INFO 2025-10-19 13:37:02,589 autoreload 98743 124917528846592 Watching for file changes with StatReloader
+INFO 2025-10-19 13:37:30,958 autoreload 98743 124917528846592 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/agents/views.py changed, reloading.
+INFO 2025-10-19 13:37:31,177 autoreload 98888 127436395778304 Watching for file changes with StatReloader
+INFO 2025-10-19 13:37:42,429 autoreload 99003 127954411368704 Watching for file changes with StatReloader
+INFO 2025-10-19 13:37:47,108 basehttp 98888 127436234684096 "GET /dashboard/ HTTP/1.1" 200 7695
+INFO 2025-10-19 13:37:47,137 basehttp 98888 127436234684096 "GET /static/css/style.css HTTP/1.1" 304 0
+INFO 2025-10-19 13:37:51,155 basehttp 98888 127436234684096 "GET /dashboard/agents/ HTTP/1.1" 200 8005
+INFO 2025-10-19 13:37:53,985 basehttp 98888 127436234684096 "GET /agents/quick-add/ HTTP/1.1" 200 13692
+INFO 2025-10-19 13:38:03,036 basehttp 98888 127436234684096 "GET /agents/create/ HTTP/1.1" 200 19389
+INFO 2025-10-19 13:38:21,875 basehttp 98888 127436234684096 "GET /dashboard/agents/ HTTP/1.1" 200 8005
+INFO 2025-10-19 13:38:23,505 basehttp 98888 127436234684096 "GET /agents/create/ HTTP/1.1" 200 19389
+INFO 2025-10-19 13:39:07,506 autoreload 99694 133951309746432 Watching for file changes with StatReloader
+INFO 2025-10-19 13:39:35,120 basehttp 99694 133951149569728 "GET /dashboard/agents/?id=85cbca19-27da-4253-a772-e978b0df44f8&vscodeBrowserReqId=1760881175102 HTTP/1.1" 302 0
+INFO 2025-10-19 13:39:35,125 basehttp 99694 133951149569728 "GET /accounts/login/?next=/dashboard/agents/%3Fid%3D85cbca19-27da-4253-a772-e978b0df44f8%26vscodeBrowserReqId%3D1760881175102 HTTP/1.1" 200 7069
+INFO 2025-10-19 13:45:22,388 autoreload 99694 133951309746432 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/agents/urls.py changed, reloading.
+INFO 2025-10-19 13:45:22,617 autoreload 101043 138924380086528 Watching for file changes with StatReloader
+INFO 2025-10-19 13:49:45,655 autoreload 101043 138924380086528 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/agents/views.py changed, reloading.
+INFO 2025-10-19 13:49:45,874 autoreload 102041 133314027319552 Watching for file changes with StatReloader
+INFO 2025-10-19 13:49:55,225 autoreload 102041 133314027319552 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/agents/views.py changed, reloading.
+INFO 2025-10-19 13:49:55,462 autoreload 102112 138198385320192 Watching for file changes with StatReloader
+INFO 2025-10-19 22:06:59,929 autoreload 202358 129179774214400 Watching for file changes with StatReloader
+INFO 2025-10-19 22:07:47,857 autoreload 202687 125469916320000 Watching for file changes with StatReloader
+INFO 2025-10-19 22:08:35,753 autoreload 203171 123172578554112 Watching for file changes with StatReloader
+INFO 2025-10-19 22:08:45,667 basehttp 203171 123172401706688 "GET /dashboard/agents/?id=36c5c23a-67a3-4e63-bbf0-45c3a19ecf68&vscodeBrowserReqId=1760911725649 HTTP/1.1" 302 0
+INFO 2025-10-19 22:08:45,673 basehttp 203171 123172401706688 "GET /accounts/login/?next=/dashboard/agents/%3Fid%3D36c5c23a-67a3-4e63-bbf0-45c3a19ecf68%26vscodeBrowserReqId%3D1760911725649 HTTP/1.1" 200 7069
+WARNING 2025-10-19 22:09:07,788 log 203171 123172393313984 Not Found: /favicon.ico
+INFO 2025-10-19 22:52:32,212 autoreload 203171 123172578554112 /home/slow/Dokumenter/Projekter/firewalld-central/web_ui/agents/views.py changed, reloading.
+INFO 2025-10-19 22:52:32,483 autoreload 217147 138090239729920 Watching for file changes with StatReloader

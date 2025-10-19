@@ -1,0 +1,2 @@
+2025-10-19 11:29:33,503 - api_server - INFO - {"component": "api_server", "log_level": "INFO", "log_file": "./logs/firewalld_central.log", "event": "Logging initialized", "logger": "api_server", "level": "info", "timestamp": "2025-10-19T09:29:33.503867Z"}
+2025-10-19 11:29:33,523 - database_manager - ERROR - {"error": "No module named 'asyncpg'", "event": "Failed to initialize database", "logger": "database_manager", "level": "error", "timestamp": "2025-10-19T09:29:33.523191Z"}
