@@ -1,28 +1,51 @@
 # Firewalld Central Management System
 
-A comprehensive centralized management system for firewalld with agent-based architecture, secure communication, and intuitive web interface.
+A comprehensive centralized management system for firewalld across multiple servers with **three different agent communication methods**.
 
-## Architecture Overview
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8+-brightgreen.svg)
+![Django](https://img.shields.io/badge/django-5.2.7-green.svg)
 
-The system consists of three main components:
+## 🚀 Overview
 
-### 1. Agent (`firewalld_agent/`)
-- Runs on servers that need firewall management
-- Supports both pull and push modes
-- Handles all firewalld operations including rich rules
-- Secure communication with self-signed certificates
+This system provides a unified web interface and API for managing firewalld configurations across multiple servers, supporting three distinct communication patterns to accommodate different network architectures and security requirements.
 
-### 2. API Server (`api_server/`)
-- Central management server with RESTful API
-- Agent registration and authentication
-- Certificate management
-- Real-time communication with agents
+## 🔧 Three Communication Methods
 
-### 3. Web UI (`web_ui/`)
-- Django-based web interface
-- Whiteboard-style visual network management
-- User management with role-based access control
-- Real-time status monitoring
+### 1. **Agent-to-Server Connection** 
+- **How it works**: Agents periodically connect to the management server to check for commands
+- **Best for**: Agents behind firewalls/NAT, no incoming connections needed
+- **Implementation**: Python agent with registration and periodic check-in
+
+### 2. **Server-to-Agent Connection**
+- **How it works**: Management server connects directly to agents via HTTP
+- **Best for**: Direct network access, real-time command execution
+- **Implementation**: HTTP server running on target systems
+
+### 3. **SSH Connection**
+- **How it works**: Standard SSH connections to execute firewalld commands
+- **Best for**: Existing SSH infrastructure, minimal setup required
+- **Implementation**: SSH key or password authentication
+
+## 🏗️ System Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Django Web UI │    │   FastAPI Server │    │   Agent Types   │
+│                 │    │                  │    │                 │
+│ • Agent Mgmt    │◄──►│ • REST API       │◄──►│ • SSH Agent     │
+│ • Firewall Rules│    │ • WebSocket      │    │ • HTTP Agent    │
+│ • Real-time UI  │    │ • Authentication │    │ • Client Agent  │
+│ • User Auth     │    │ • Command Queue  │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+## 📦 Components
+
+- **[Web UI](web_ui/)**: Django-based management interface with dynamic forms
+- **[API Server](api_server/)**: FastAPI REST API for programmatic access
+- **[Agents](agent/)**: Multiple agent implementations for different use cases
+- **[Shared](shared/)**: Common models, utilities, and configuration
 
 ## Features
 
