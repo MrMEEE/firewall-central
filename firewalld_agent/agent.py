@@ -58,10 +58,48 @@ class FirewalldAgent:
         """Load agent configuration."""
         yaml_config = load_yaml_config(self.config_path)
         
-        # Override with YAML values
+        # Flatten nested configuration
         config_dict = {}
-        for key, value in yaml_config.items():
-            config_dict[key] = value
+        
+        # Server section
+        if 'server' in yaml_config:
+            server = yaml_config['server']
+            config_dict['server_url'] = server.get('url', 'https://localhost:8000')
+            config_dict['mode'] = server.get('mode', 'pull')
+            config_dict['poll_interval'] = server.get('poll_interval', 30)
+        
+        # Agent section
+        if 'agent' in yaml_config:
+            agent = yaml_config['agent']
+            config_dict['agent_id'] = agent.get('agent_id')
+            config_dict['hostname'] = agent.get('hostname')
+            config_dict['listen_host'] = agent.get('listen_host', '0.0.0.0')
+            config_dict['listen_port'] = agent.get('listen_port', 9000)
+        
+        # Security section
+        if 'security' in yaml_config:
+            security = yaml_config['security']
+            config_dict['ssl_cert_path'] = security.get('ssl_cert_path', './certs/agent.crt')
+            config_dict['ssl_key_path'] = security.get('ssl_key_path', './certs/agent.key')
+            config_dict['ca_cert_path'] = security.get('ca_cert_path', './certs/ca.crt')
+        
+        # Timeouts section
+        if 'timeouts' in yaml_config:
+            timeouts = yaml_config['timeouts']
+            config_dict['connection_timeout'] = timeouts.get('connection_timeout', 10)
+            config_dict['max_retries'] = timeouts.get('max_retries', 3)
+            config_dict['retry_delay'] = timeouts.get('retry_delay', 5)
+        
+        # Firewalld section
+        if 'firewalld' in yaml_config:
+            firewalld = yaml_config['firewalld']
+            config_dict['firewalld_reload_timeout'] = firewalld.get('reload_timeout', 30)
+        
+        # Logging section
+        if 'logging' in yaml_config:
+            logging = yaml_config['logging']
+            config_dict['log_level'] = logging.get('log_level', 'INFO')
+            config_dict['log_file'] = logging.get('log_file', '/var/log/firewalld-agent.log')
         
         return AgentConfig(**config_dict)
     
