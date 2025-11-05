@@ -10,7 +10,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-me-in-producti
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['*']  # Allow all hosts for development
 
 # Application definition
 INSTALLED_APPS = [
@@ -131,6 +131,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",

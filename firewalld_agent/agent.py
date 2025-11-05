@@ -199,7 +199,7 @@ class FirewalldAgent:
                 ip_address=get_local_ip(),
                 mode=AgentMode(self.config.mode),
                 status=AgentStatus.ONLINE,
-                last_seen=datetime.utcnow(),
+                last_seen=datetime.now(),
                 version="1.0.0",
                 operating_system=self._get_os_info(),
                 firewalld_version=self.firewalld.get_version()
@@ -208,7 +208,7 @@ class FirewalldAgent:
             async with httpx.AsyncClient(verify=False, timeout=self.config.connection_timeout) as client:
                 response = await client.post(
                     f"{self.config.server_url}/api/agents/{self.agent_id}/heartbeat",
-                    json=agent_info.dict()
+                    json=agent_info.model_dump(mode='json')
                 )
                 
                 return response.status_code == 200
@@ -229,8 +229,8 @@ class FirewalldAgent:
         """Check for pending commands from the server."""
         try:
             async with httpx.AsyncClient(verify=False, timeout=self.config.connection_timeout) as client:
-                response = await client.get(
-                    f"{self.config.server_url}/api/agents/{self.agent_id}/commands"
+                response = await client.post(
+                    f"{self.config.server_url}/api/agents/{self.agent_id}/checkin"
                 )
                 
                 if response.status_code == 200:
@@ -311,7 +311,7 @@ class FirewalldAgent:
             async with httpx.AsyncClient(verify=False, timeout=self.config.connection_timeout) as client:
                 response = await client.post(
                     f"{self.config.server_url}/api/commands/{result.command_id}/result",
-                    json=result.dict()
+                    json=result.model_dump(mode='json')
                 )
                 
                 return response.status_code == 200
@@ -361,7 +361,7 @@ class FirewalldAgent:
         async def receive_command(command: AgentCommand):
             try:
                 result = await self.execute_command(command)
-                return result.dict()
+                return result.model_dump(mode='json')
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
         
@@ -375,14 +375,14 @@ class FirewalldAgent:
                     ip_address=get_local_ip(),
                     mode=AgentMode.PUSH,
                     status=AgentStatus.ONLINE,
-                    last_seen=datetime.utcnow(),
+                    last_seen=datetime.now(),
                     version="1.0.0",
                     operating_system=self._get_os_info(),
                     firewalld_version=self.firewalld.get_version()
                 )
                 
                 return {
-                    "agent_info": agent_info.dict(),
+                    "agent_info": agent_info.model_dump(mode='json'),
                     "firewall_status": status
                 }
             except Exception as e:

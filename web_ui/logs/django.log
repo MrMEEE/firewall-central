@@ -626,3 +626,9 @@ INFO 2025-11-05 07:45:16,401 basehttp 345216 139546420311744 "GET /dashboard/age
 INFO 2025-11-05 07:45:19,342 basehttp 345216 139546420311744 "GET /agents/quick-add/ HTTP/1.1" 200 13692
 INFO 2025-11-05 07:49:49,045 basehttp 345216 139546420311744 "GET /agents/create/ HTTP/1.1" 200 19389
 INFO 2025-11-05 07:49:49,071 basehttp 345216 139546420311744 "GET /static/css/style.css HTTP/1.1" 304 0
+INFO 2025-11-05 08:05:40,593 autoreload 345216 139546604847360 /home/mj/Downloads/firewall-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-11-05 08:05:40,937 autoreload 351225 131639052960000 Watching for file changes with StatReloader
+INFO 2025-11-05 08:05:47,249 autoreload 351225 131639052960000 /home/mj/Downloads/firewall-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-11-05 08:05:47,576 autoreload 351261 126093796110592 Watching for file changes with StatReloader
+INFO 2025-11-05 08:06:18,134 autoreload 351261 126093796110592 /home/mj/Downloads/firewall-central/web_ui/firewall_central/settings.py changed, reloading.
+INFO 2025-11-05 08:06:18,484 autoreload 351390 130426647019776 Watching for file changes with StatReloader
