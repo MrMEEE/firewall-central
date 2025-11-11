@@ -76,10 +76,44 @@ def agent_detail(request, agent_id):
     rules = agent.rules.all()
     recent_commands = agent.commands.order_by('-created_at')[:10]
     
+    # Group rules by service/port name
+    rules_grouped = {}
+    for rule in rules:
+        if rule.rule_type == 'service':
+            key = f"service:{rule.service}"
+            name = rule.service
+            rule_type = 'service'
+        elif rule.rule_type == 'port':
+            key = f"port:{rule.port}/{rule.protocol}"
+            name = f"{rule.port}/{rule.protocol}"
+            rule_type = 'port'
+        else:
+            continue
+            
+        if key not in rules_grouped:
+            rules_grouped[key] = {
+                'name': name,
+                'type': rule_type,
+                'zones': [],
+                'rule_ids': [],
+            }
+        
+        rules_grouped[key]['zones'].append({
+            'zone_id': rule.zone.id,
+            'zone_name': rule.zone.name,
+            'rule_id': str(rule.id)
+        })
+        rules_grouped[key]['rule_ids'].append(str(rule.id))
+    
+    # JSON-encode rule_ids for JavaScript
+    for group in rules_grouped.values():
+        group['rule_ids_json'] = json.dumps(group['rule_ids'])
+    
     context = {
         'agent': agent,
         'zones': zones,
         'rules': rules,
+        'rules_grouped': sorted(rules_grouped.values(), key=lambda x: x['name']),
         'recent_commands': recent_commands,
     }
     

@@ -55,6 +55,20 @@ class Agent(models.Model):
     firewalld_version = models.CharField(max_length=50, blank=True)
     description = models.TextField(blank=True)
     
+    # Auto-sync configuration
+    sync_interval_seconds = models.IntegerField(
+        default=60,
+        help_text="Interval in seconds for automatic firewall configuration sync (0 to disable)"
+    )
+    last_sync = models.DateTimeField(null=True, blank=True, help_text="Last time firewall config was synced")
+    
+    # Available firewalld services on this agent
+    available_services = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of available firewalld services on this agent"
+    )
+    
     class Meta:
         ordering = ['hostname']
     

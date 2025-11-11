@@ -57,6 +57,42 @@
         border-radius: 0.375rem;
         padding: 0.75rem;
     }
+    
+    .zone-detail {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        background-color: #ffffff;
+    }
+    
+    .zone-detail:hover {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: box-shadow 0.2s;
+    }
+    
+    .zone-detail .card {
+        transition: transform 0.2s;
+    }
+    
+    .zone-detail .card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .modal-content {
+        border-radius: 0.5rem;
+    }
+    
+    .modal-header {
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .modal-footer {
+        border-top: 2px solid #e9ecef;
+    }
+    
+    .btn-action {
+        min-width: 100px;
+    }
 </style>
 {% endblock %}
 
@@ -68,7 +104,7 @@
                 <h1>
                     <i class="fas fa-desktop me-2"></i>{{ agent.hostname }}
                     <span class="status-indicator status-{{ agent.status }}"></span>
-                    <span class="badge bg-{{ agent.status == 'online' and 'success' or agent.status == 'offline' and 'danger' or 'secondary' }}">
+                    <span class="badge bg-{% if agent.status == 'online' %}success{% elif agent.status == 'offline' %}danger{% else %}secondary{% endif %}">
                         {{ agent.get_status_display }}
                     </span>
                 </h1>
@@ -86,6 +122,9 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="#" onclick="testConnection()">
                                 <i class="fas fa-satellite-dish me-2"></i>Test Connection
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="syncFirewallConfig()">
+                                <i class="fas fa-download me-2"></i>Sync Firewall Config
                             </a></li>
                             <li><a class="dropdown-item" href="#" onclick="refreshAgent()">
                                 <i class="fas fa-sync me-2"></i>Refresh Status
@@ -140,7 +179,13 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Agent Version:</label>
-                                <div>{{ agent.version|default:"Unknown" }}</div>
+                                <div>
+                                    {% if agent.connection_type == 'ssh' %}
+                                        <span class="text-muted">None/SSH</span>
+                                    {% else %}
+                                        {{ agent.version|default:"Unknown" }}
+                                    {% endif %}
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Status:</label>
@@ -157,6 +202,27 @@
                                         <br><small class="text-muted">({{ agent.last_seen|timesince }} ago)</small>
                                     {% else %}
                                         <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Last Sync:</label>
+                                <div>
+                                    {% if agent.last_sync %}
+                                        {{ agent.last_sync|date:'Y-m-d H:i:s' }}
+                                        <br><small class="text-muted">({{ agent.last_sync|timesince }} ago)</small>
+                                    {% else %}
+                                        <span class="text-muted">Never synced</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Auto-Sync Interval:</label>
+                                <div>
+                                    {% if agent.sync_interval_seconds > 0 %}
+                                        <span class="badge bg-success">{{ agent.sync_interval_seconds }}s</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Disabled</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -189,63 +255,216 @@
                 <!-- Firewall Zones and Rules -->
                 <div class="col-lg-8">
                     <!-- Firewall Zones -->
-                    <div class="info-card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5><i class="fas fa-shield-alt me-2"></i>Firewall Zones</h5>
-                            <span class="badge bg-primary">{{ zones.count }} zone{{ zones.count|pluralize }}</span>
+                    <div class="info-card" id="zones-container">
+                        <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#zonesCollapse" aria-expanded="false" aria-controls="zonesCollapse">
+                            <h5>
+                                <i class="fas fa-chevron-right me-2" id="zones-chevron"></i>
+                                <i class="fas fa-shield-alt me-2"></i>
+                                Firewall Zones
+                            </h5>
+                            <div>
+                                <button class="btn btn-sm btn-success me-2" onclick="event.stopPropagation(); showCreateZoneModal()">
+                                    <i class="fas fa-plus me-1"></i>Create Zone
+                                </button>
+                                <span class="badge bg-primary" id="zones-count-badge">{{ zones.count }} zone{{ zones.count|pluralize }}</span>
+                            </div>
                         </div>
-                        <div class="card-body">
+                        <div class="collapse" id="zonesCollapse">
+                            <div class="card-body" id="zones-body">
                             {% if zones %}
                                 {% for zone in zones %}
-                                <span class="zone-badge">
-                                    <i class="fas fa-layer-group me-1"></i>{{ zone.name }}
-                                </span>
+                                <div class="zone-detail mb-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-layer-group me-2 text-primary"></i>
+                                            <strong>{{ zone.name }}</strong>
+                                            {% if zone.target %}
+                                                <span class="badge bg-info ms-2">Target: {{ zone.target }}</span>
+                                            {% endif %}
+                                        </h6>
+                                        <div>
+                                            {% if zone.masquerade %}
+                                                <span class="badge bg-warning me-2">
+                                                    <i class="fas fa-mask me-1"></i>Masquerade
+                                                </span>
+                                            {% endif %}
+                                            <button class="btn btn-sm btn-danger" onclick="deleteZone('{{ zone.id }}', '{{ zone.name }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if zone.description %}
+                                    <div class="text-muted small mb-2">{{ zone.description }}</div>
+                                    {% endif %}
+                                    
+                                    <div class="row g-2">
+                                        <!-- Interfaces -->
+                                        {% if zone.interfaces %}
+                                        <div class="col-md-6">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body p-2">
+                                                    <div class="small fw-bold mb-1">
+                                                        <i class="fas fa-network-wired me-1"></i>Interfaces
+                                                    </div>
+                                                    <div class="small">
+                                                        {% for interface in zone.interfaces %}
+                                                            <span class="badge bg-secondary me-1">{{ interface }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Sources -->
+                                        {% if zone.sources %}
+                                        <div class="col-md-6">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body p-2">
+                                                    <div class="small fw-bold mb-1">
+                                                        <i class="fas fa-map-marker-alt me-1"></i>Sources
+                                                    </div>
+                                                    <div class="small">
+                                                        {% for source in zone.sources %}
+                                                            <span class="badge bg-secondary me-1">{{ source }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Services -->
+                                        <div class="col-md-6">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body p-2">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <div class="small fw-bold">
+                                                            <i class="fas fa-server me-1"></i>Services ({{ zone.services|length }})
+                                                        </div>
+                                                        <button class="btn btn-sm btn-success" onclick="showAddServiceModal('{{ zone.id }}', '{{ zone.name }}')">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div class="small">
+                                                        {% for service in zone.services %}
+                                                            <span class="badge bg-success me-1 mb-1">
+                                                                {{ service }}
+                                                                <a href="#" class="text-white ms-1" onclick="removeService('{{ zone.id }}', '{{ service }}'); return false;">
+                                                                    <i class="fas fa-times"></i>
+                                                                </a>
+                                                            </span>
+                                                        {% empty %}
+                                                            <span class="text-muted">No services</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Ports -->
+                                        <div class="col-md-6">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body p-2">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <div class="small fw-bold">
+                                                            <i class="fas fa-door-open me-1"></i>Ports ({{ zone.ports|length }})
+                                                        </div>
+                                                        <button class="btn btn-sm btn-primary" onclick="showAddPortModal('{{ zone.id }}', '{{ zone.name }}')">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div class="small">
+                                                        {% for port in zone.ports %}
+                                                            <span class="badge bg-primary me-1 mb-1">
+                                                                {{ port }}
+                                                                <a href="#" class="text-white ms-1" onclick="removePort('{{ zone.id }}', '{{ port }}'); return false;">
+                                                                    <i class="fas fa-times"></i>
+                                                                </a>
+                                                            </span>
+                                                        {% empty %}
+                                                            <span class="text-muted">No ports</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-end mt-2">
+                                        <small class="text-muted">
+                                            Updated: {{ zone.updated_at|date:'Y-m-d H:i:s' }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% if not forloop.last %}<hr>{% endif %}
                                 {% endfor %}
                             {% else %}
                                 <div class="text-muted text-center py-3">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
-                                    No zones configured
+                                    No zones configured. Click "Sync Firewall Config" to pull configuration from the agent.
                                 </div>
                             {% endif %}
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Firewall Rules -->
-                    <div class="info-card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5><i class="fas fa-list-ul me-2"></i>Firewall Rules</h5>
-                            <span class="badge bg-primary">{{ rules.count }} rule{{ rules.count|pluralize }}</span>
+                    <!-- Firewall Overview -->
+                    <div class="info-card" id="rules-container">
+                        <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#rulesCollapse" aria-expanded="false" aria-controls="rulesCollapse">
+                            <h5>
+                                <i class="fas fa-chevron-right me-2" id="rules-chevron"></i>
+                                <i class="fas fa-list-ul me-2"></i>
+                                Firewall Overview
+                            </h5>
+                            <span class="badge bg-primary" id="rules-count-badge">{{ rules.count }} rule{{ rules.count|pluralize }}</span>
                         </div>
-                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                            {% if rules %}
-                                {% for rule in rules %}
-                                <div class="rule-item">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <strong>{{ rule.rule_type|title }}:</strong> 
-                                            {% if rule.service %}
-                                                Service: {{ rule.service }}
-                                            {% elif rule.port %}
-                                                Port: {{ rule.port }}{% if rule.protocol %}/{{ rule.protocol }}{% endif %}
-                                            {% elif rule.source %}
-                                                Source: {{ rule.source }}
-                                            {% else %}
-                                                {{ rule.description|default:"Custom rule" }}
-                                            {% endif %}
+                        <div class="collapse" id="rulesCollapse">
+                            <div class="card-body" style="max-height: 400px; overflow-y: auto;" id="rules-body">
+                            {% if rules_grouped %}
+                                <div class="list-group">
+                                    {% for group in rules_grouped %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">
+                                                    {% if group.type == 'service' %}
+                                                        <i class="fas fa-server me-2 text-success"></i>
+                                                        <span class="badge bg-success">Service</span>
+                                                    {% else %}
+                                                        <i class="fas fa-door-open me-2 text-primary"></i>
+                                                        <span class="badge bg-primary">Port</span>
+                                                    {% endif %}
+                                                    <strong>{{ group.name }}</strong>
+                                                </h6>
+                                                <div class="small text-muted">
+                                                    <i class="fas fa-layer-group me-1"></i>
+                                                    Active in {{ group.zones|length }} zone{{ group.zones|length|pluralize }}:
+                                                    {% for zone_info in group.zones %}
+                                                        <span class="badge bg-secondary me-1">{{ zone_info.zone_name }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-success me-2" onclick="showAddToZoneModal('{{ group.name }}', '{{ group.type }}', {{ group.zones|safe }})">
+                                                    <i class="fas fa-plus me-1"></i>Add to Zone
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="removeRuleGroup('{{ group.name }}', '{{ group.type }}', '{{ group.rule_ids_json|escapejs }}')">
+                                                    <i class="fas fa-trash me-1"></i>Delete All
+                                                </button>
+                                            </div>
                                         </div>
-                                        <span class="badge bg-secondary">{{ rule.zone.name }}</span>
                                     </div>
-                                    {% if rule.description %}
-                                    <div class="small text-muted mt-1">{{ rule.description }}</div>
-                                    {% endif %}
+                                    {% endfor %}
                                 </div>
-                                {% endfor %}
                             {% else %}
                                 <div class="text-muted text-center py-3">
                                     <i class="fas fa-info-circle me-2"></i>
                                     No firewall rules configured
                                 </div>
                             {% endif %}
+                            </div>
                         </div>
                     </div>
 
@@ -267,7 +486,7 @@
                                             {% endif %}
                                             <div class="small text-muted">
                                                 Status: 
-                                                <span class="badge bg-{{ command.status == 'completed' and 'success' or command.status == 'failed' and 'danger' or 'warning' }}">
+                                                <span class="badge bg-{% if command.status == 'completed' %}success{% elif command.status == 'failed' %}danger{% else %}warning{% endif %}">
                                                     {{ command.get_status_display }}
                                                 </span>
                                             </div>
@@ -296,10 +515,451 @@
         </div>
     </div>
 </div>
+
+<!-- Modals -->
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">
+                    <i class="fas fa-question-circle text-warning me-2"></i>
+                    Confirm Action
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirmModalBody">
+                <!-- Confirmation message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-action" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary btn-action" id="confirmModalButton">
+                    <i class="fas fa-check me-1"></i>Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="successModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Success
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="successModalBody">
+                <!-- Success message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success btn-action" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-1"></i>OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="errorModalBody">
+                <!-- Error message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger btn-action" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Port Modal -->
+<div class="modal fade" id="addPortModal" tabindex="-1" aria-labelledby="addPortModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPortModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    Add Port to <span id="addPortZoneName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPortForm">
+                    <div class="mb-3">
+                        <label for="portNumber" class="form-label">Port Number or Range</label>
+                        <input type="text" class="form-control" id="portNumber" placeholder="e.g., 8080 or 8080-8090" required>
+                        <div class="form-text">Enter a single port or a range (e.g., 8080-8090)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="portProtocol" class="form-label">Protocol</label>
+                        <select class="form-select" id="portProtocol" required>
+                            <option value="tcp" selected>TCP</option>
+                            <option value="udp">UDP</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-action" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary btn-action" id="addPortSubmit">
+                    <i class="fas fa-plus me-1"></i>Add Port
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Zone Modal -->
+<div class="modal fade" id="createZoneModal" tabindex="-1" aria-labelledby="createZoneModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createZoneModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    Create New Zone
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createZoneForm">
+                    <div class="mb-3">
+                        <label for="zoneName" class="form-label">Zone Name</label>
+                        <input type="text" class="form-control" id="zoneName" placeholder="e.g., dmz, internal" required>
+                        <div class="form-text">Enter a unique zone name</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="zoneTarget" class="form-label">Target</label>
+                        <select class="form-select" id="zoneTarget">
+                            <option value="default" selected>default</option>
+                            <option value="ACCEPT">ACCEPT</option>
+                            <option value="DROP">DROP</option>
+                            <option value="REJECT">REJECT</option>
+                        </select>
+                        <div class="form-text">Default policy for the zone</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-action" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success btn-action" id="createZoneSubmit">
+                    <i class="fas fa-plus me-1"></i>Create Zone
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add to Zone Modal -->
+<div class="modal fade" id="addToZoneModal" tabindex="-1" aria-labelledby="addToZoneModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addToZoneModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    Add <strong><span id="addToZoneItemName"></span></strong> to Zone
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Select zone(s) to add <strong><span id="addToZoneItemName2"></span></strong> to:</p>
+                <div id="availableZonesList">
+                    <!-- Zones will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-action" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success btn-action" id="addToZoneSubmit">
+                    <i class="fas fa-plus me-1"></i>Add to Selected Zones
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Service Modal -->
+<div class="modal fade" id="addServiceModal" tabindex="-1" aria-labelledby="addServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addServiceModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    Add Service to <span id="addServiceZoneName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addServiceForm">
+                    <div class="mb-3">
+                        <label for="serviceName" class="form-label">Service Name</label>
+                        <input type="text" class="form-control" id="serviceSearch" placeholder="Search for a service..." autocomplete="off">
+                        <div id="serviceDropdown" class="dropdown-menu" style="max-height: 300px; overflow-y: auto; width: 100%;"></div>
+                        <input type="hidden" id="serviceName">
+                        <div class="form-text mt-2" id="selectedServiceDisplay"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-action" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary btn-action" id="addServiceSubmit">
+                    <i class="fas fa-plus me-1"></i>Add Service
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Modal helper functions
+function showConfirm(message, callback) {
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    document.getElementById('confirmModalBody').innerHTML = `<p>${message}</p>`;
+    
+    const confirmBtn = document.getElementById('confirmModalButton');
+    // Remove old listeners
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    newConfirmBtn.addEventListener('click', function() {
+        modal.hide();
+        callback();
+    });
+    
+    modal.show();
+}
+
+function showSuccess(message, reload = true) {
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    document.getElementById('successModalBody').innerHTML = `<p>${message}</p>`;
+    modal.show();
+    
+    if (reload) {
+        document.getElementById('successModal').addEventListener('hidden.bs.modal', function() {
+            location.reload();
+        }, { once: true });
+    }
+}
+
+function showError(message) {
+    const modal = new bootstrap.Modal(document.getElementById('errorModal'));
+    document.getElementById('errorModalBody').innerHTML = `<p>${message}</p>`;
+    modal.show();
+}
+
+// Handle fetch responses properly
+async function handleResponse(response) {
+    const contentType = response.headers.get('content-type');
+    
+    if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Server returned non-JSON response: ${text.substring(0, 200)}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+        throw new Error(data.error || data.message || `HTTP error ${response.status}`);
+    }
+    
+    return data;
+}
+
+// Render zones dynamically
+function renderZones(zones) {
+    const zonesBody = document.getElementById('zones-body');
+    const zonesCountBadge = document.getElementById('zones-count-badge');
+    
+    if (!zonesBody) return;
+    
+    // Update count badge
+    zonesCountBadge.textContent = `${zones.length} zone${zones.length !== 1 ? 's' : ''}`;
+    
+    if (zones.length === 0) {
+        zonesBody.innerHTML = `
+            <div class="text-muted text-center py-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No zones configured. Click "Sync Firewall Config" to pull configuration from the agent.
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    zones.forEach((zone, index) => {
+        html += `
+            <div class="zone-detail mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">
+                        <i class="fas fa-layer-group me-2 text-primary"></i>
+                        <strong>${zone.name}</strong>
+                        ${zone.target ? `<span class="badge bg-info ms-2">Target: ${zone.target}</span>` : ''}
+                    </h6>
+                    <div>
+                        ${zone.masquerade ? '<span class="badge bg-warning me-2"><i class="fas fa-mask me-1"></i>Masquerade</span>' : ''}
+                        <button class="btn btn-sm btn-danger" onclick="deleteZone('${zone.id}', '${zone.name}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                ${zone.description ? `<div class="text-muted small mb-2">${zone.description}</div>` : ''}
+                
+                <div class="row g-2">
+                    ${zone.interfaces && zone.interfaces.length > 0 ? `
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0">
+                            <div class="card-body p-2">
+                                <div class="small fw-bold mb-1">
+                                    <i class="fas fa-network-wired me-1"></i>Interfaces
+                                </div>
+                                <div class="small">
+                                    ${zone.interfaces.map(i => `<span class="badge bg-secondary me-1">${i}</span>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${zone.sources && zone.sources.length > 0 ? `
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0">
+                            <div class="card-body p-2">
+                                <div class="small fw-bold mb-1">
+                                    <i class="fas fa-map-marker-alt me-1"></i>Sources
+                                </div>
+                                <div class="small">
+                                    ${zone.sources.map(s => `<span class="badge bg-secondary me-1">${s}</span>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="small fw-bold">
+                                        <i class="fas fa-server me-1"></i>Services (${zone.services ? zone.services.length : 0})
+                                    </div>
+                                    <button class="btn btn-sm btn-success" onclick="showAddServiceModal('${zone.id}', '${zone.name}')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="small">
+                                    ${zone.services && zone.services.length > 0 ? 
+                                        zone.services.map(service => `
+                                            <span class="badge bg-success me-1 mb-1">
+                                                ${service}
+                                                <a href="#" class="text-white ms-1" onclick="removeService('${zone.id}', '${service}'); return false;">
+                                                    <i class="fas fa-times"></i>
+                                                </a>
+                                            </span>
+                                        `).join('') : 
+                                        '<span class="text-muted">No services</span>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="small fw-bold">
+                                        <i class="fas fa-door-open me-1"></i>Ports (${zone.ports ? zone.ports.length : 0})
+                                    </div>
+                                    <button class="btn btn-sm btn-primary" onclick="showAddPortModal('${zone.id}', '${zone.name}')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="small">
+                                    ${zone.ports && zone.ports.length > 0 ? 
+                                        zone.ports.map(port => `
+                                            <span class="badge bg-primary me-1 mb-1">
+                                                ${port}
+                                                <a href="#" class="text-white ms-1" onclick="removePort('${zone.id}', '${port}'); return false;">
+                                                    <i class="fas fa-times"></i>
+                                                </a>
+                                            </span>
+                                        `).join('') : 
+                                        '<span class="text-muted">No ports</span>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ${index < zones.length - 1 ? '<hr>' : ''}
+        `;
+    });
+    
+    zonesBody.innerHTML = html;
+}
+
+// Poll for zone updates
+let lastSyncTimestamp = '{{ agent.last_sync|date:"c"|default:"" }}';
+let isPolling = false;
+
+function checkForUpdates() {
+    if (isPolling) return;
+    
+    isPolling = true;
+    const agentId = '{{ agent.id }}';
+    
+    fetch(`/agents/${agentId}/zones-data/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Check if data has changed
+                if (data.last_sync && data.last_sync !== lastSyncTimestamp) {
+                    console.log('Zones updated, refreshing display...');
+                    lastSyncTimestamp = data.last_sync;
+                    
+                    // Update zones display
+                    renderZones(data.zones);
+                    
+                    // TODO: Update grouped rules display when implemented
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Polling error:', error);
+        })
+        .finally(() => {
+            isPolling = false;
+        });
+}
+
 function testConnection() {
     const agentId = '{{ agent.id }}';
     const button = document.querySelector('[onclick="testConnection()"]');
@@ -316,26 +976,60 @@ function testConnection() {
             'Content-Type': 'application/json',
         },
     })
-    .then(response => response.json())
+    .then(handleResponse)
     .then(data => {
-        // Restore button
         button.innerHTML = originalText;
         button.classList.remove('disabled');
         
         if (data.success) {
-            alert(`Connection test successful!\n\nType: ${data.connection_type}\nMessage: ${data.message}`);
+            showSuccess(`<strong>Connection test successful!</strong><br><br>Type: ${data.connection_type}<br>Message: ${data.message}`, false);
         } else {
-            alert(`Connection test failed!\n\nError: ${data.error}`);
+            showError(`<strong>Connection test failed!</strong><br><br>${data.error || data.message}`);
         }
     })
     .catch(error => {
-        // Restore button
         button.innerHTML = originalText;
         button.classList.remove('disabled');
-        
-        alert(`Connection test failed!\n\nError: ${error.message}`);
+        showError(`<strong>Connection test failed!</strong><br><br>${error.message}`);
     });
 }
+
+function syncFirewallConfig() {
+    const agentId = '{{ agent.id }}';
+    const button = document.querySelector('[onclick="syncFirewallConfig()"]');
+    const originalText = button.innerHTML;
+    
+    showConfirm('This will sync all firewall zones and rules from the agent to the database. Existing data will be replaced. Continue?', function() {
+        // Show loading state
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Syncing...';
+        button.classList.add('disabled');
+        
+        fetch(`/agents/${agentId}/sync-firewall/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(handleResponse)
+        .then(data => {
+            button.innerHTML = originalText;
+            button.classList.remove('disabled');
+            
+            if (data.success) {
+                showSuccess(`<strong>Firewall configuration synced successfully!</strong><br><br>Zones: ${data.zones_created}<br>Rules: ${data.rules_created}`);
+            } else {
+                showError(`<strong>Sync failed!</strong><br><br>${data.error || data.message}`);
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalText;
+            button.classList.remove('disabled');
+            showError(`<strong>Sync failed!</strong><br><br>${error.message}`);
+        });
+    });
+}
+
 
 function refreshAgent() {
     // In a real implementation, this would make an AJAX call to refresh agent status
@@ -352,6 +1046,479 @@ function removeAgent() {
         // In a real implementation, this would make an AJAX call to remove the agent
         alert('Agent removal functionality would be implemented here');
     }
+}
+
+function showAddServiceModal(zoneId, zoneName) {
+    const agentId = '{{ agent.id }}';
+    document.getElementById('addServiceZoneName').textContent = zoneName;
+    const modal = new bootstrap.Modal(document.getElementById('addServiceModal'));
+    
+    const searchInput = document.getElementById('serviceSearch');
+    const dropdown = document.getElementById('serviceDropdown');
+    const serviceNameInput = document.getElementById('serviceName');
+    const selectedDisplay = document.getElementById('selectedServiceDisplay');
+    
+    // Reset fields
+    searchInput.value = '';
+    serviceNameInput.value = '';
+    dropdown.innerHTML = '';
+    dropdown.classList.remove('show');
+    selectedDisplay.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Loading available services...</small>';
+    
+    // Fetch available services from the agent
+    fetch(`/agents/${agentId}/available-services/`)
+        .then(handleResponse)
+        .then(data => {
+            if (data.success && data.services && data.services.length > 0) {
+                const availableServices = data.services;
+                
+                searchInput.placeholder = 'Search for a service...';
+                selectedDisplay.innerHTML = '<small class="text-muted">Type to search, or scroll to browse</small>';
+                
+                // Function to filter and display services
+                function filterServices(searchTerm) {
+                    const filtered = availableServices.filter(s => 
+                        s.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                    
+                    dropdown.innerHTML = '';
+                    
+                    if (filtered.length === 0) {
+                        dropdown.innerHTML = '<div class="dropdown-item text-muted disabled">No matching services</div>';
+                    } else {
+                        const displayCount = Math.min(filtered.length, 50);
+                        filtered.slice(0, displayCount).forEach(service => {
+                            const item = document.createElement('a');
+                            item.className = 'dropdown-item';
+                            item.href = '#';
+                            item.textContent = service;
+                            item.onclick = function(e) {
+                                e.preventDefault();
+                                serviceNameInput.value = service;
+                                searchInput.value = service;
+                                selectedDisplay.innerHTML = `<span class="badge bg-success"><i class="fas fa-check me-1"></i>Selected: ${service}</span>`;
+                                dropdown.classList.remove('show');
+                            };
+                            dropdown.appendChild(item);
+                        });
+                        
+                        if (filtered.length > 50) {
+                            const moreItem = document.createElement('div');
+                            moreItem.className = 'dropdown-item text-muted disabled';
+                            moreItem.textContent = `... and ${filtered.length - 50} more (keep typing to filter)`;
+                            dropdown.appendChild(moreItem);
+                        }
+                    }
+                    
+                    dropdown.classList.add('show');
+                }
+                
+                // Show all services initially
+                filterServices('');
+                
+                // Filter as user types
+                searchInput.oninput = function() {
+                    const value = this.value;
+                    filterServices(value);
+                    // Also update hidden field for manual entry
+                    serviceNameInput.value = value;
+                    if (value) {
+                        selectedDisplay.innerHTML = `<small class="text-muted">Typing: ${value}</small>`;
+                    } else {
+                        selectedDisplay.innerHTML = '<small class="text-muted">Type to search, or scroll to browse</small>';
+                    }
+                };
+                
+                searchInput.onfocus = function() {
+                    filterServices(this.value);
+                };
+                
+                // Hide dropdown when clicking outside
+                document.addEventListener('click', function hideDropdown(e) {
+                    if (!dropdown.contains(e.target) && e.target !== searchInput) {
+                        dropdown.classList.remove('show');
+                    }
+                });
+            } else {
+                // Fallback to text input if no services available
+                console.log('No services available, using manual entry mode');
+                
+                searchInput.placeholder = 'Enter service name (e.g., http, https, ssh, cockpit)';
+                selectedDisplay.innerHTML = '<div class="alert alert-info mb-0 p-2"><i class="fas fa-info-circle me-1"></i><small>No services cached. Sync agent to populate dropdown, or type service name manually.</small></div>';
+                
+                searchInput.oninput = function() {
+                    const value = this.value.trim();
+                    serviceNameInput.value = value;
+                    if (value) {
+                        selectedDisplay.innerHTML = `<div class="alert alert-info mb-0 p-2"><small><i class="fas fa-edit me-1"></i>Will add: <strong>${value}</strong></small></div>`;
+                    } else {
+                        selectedDisplay.innerHTML = '<div class="alert alert-info mb-0 p-2"><i class="fas fa-info-circle me-1"></i><small>No services cached. Sync agent to populate dropdown, or type service name manually.</small></div>';
+                    }
+                };
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching services:', error);
+            searchInput.placeholder = 'Enter service name (e.g., http, https, ssh)';
+            selectedDisplay.innerHTML = '<div class="alert alert-warning mb-0 p-2"><i class="fas fa-exclamation-triangle me-1"></i><small>Could not load services. Type service name manually.</small></div>';
+            
+            searchInput.oninput = function() {
+                serviceNameInput.value = this.value.trim();
+            };
+        });
+    
+    document.getElementById('addServiceSubmit').onclick = function() {
+        const service = document.getElementById('serviceName').value.trim();
+        if (service) {
+            modal.hide();
+            addService(zoneId, service);
+        } else {
+            selectedDisplay.innerHTML = '<div class="alert alert-danger mb-0 p-2"><i class="fas fa-exclamation-circle me-1"></i><small>Please enter or select a service name</small></div>';
+        }
+    };
+    
+    modal.show();
+    setTimeout(() => document.getElementById('serviceSearch').focus(), 500);
+}
+
+function addService(zoneId, service) {
+    const agentId = '{{ agent.id }}';
+    
+    fetch(`/agents/${agentId}/zone/${zoneId}/service/add/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ service: service })
+    })
+    .then(handleResponse)
+    .then(data => {
+        if (data.success) {
+            showSuccess(`Service <strong>${service}</strong> added successfully!`);
+            // Immediately refresh the zones display
+            checkForUpdates();
+        } else {
+            showError(`<strong>Failed to add service:</strong><br><br>${data.error || data.message}`);
+        }
+    })
+    .catch(error => {
+        showError(`<strong>Error adding service:</strong><br><br>${error.message}`);
+    });
+}
+
+function removeService(zoneId, service) {
+    const agentId = '{{ agent.id }}';
+    
+    showConfirm(`Remove service <strong>${service}</strong>?`, function() {
+        fetch(`/agents/${agentId}/zone/${zoneId}/service/${service}/remove/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(handleResponse)
+        .then(data => {
+            if (data.success) {
+                showSuccess(`Service <strong>${service}</strong> removed successfully!`);
+                // Immediately refresh the zones display
+                checkForUpdates();
+            } else {
+                showError(`<strong>Failed to remove service:</strong><br><br>${data.error || data.message}`);
+            }
+        })
+        .catch(error => {
+            showError(`<strong>Error removing service:</strong><br><br>${error.message}`);
+        });
+    });
+}
+
+function showAddPortModal(zoneId, zoneName) {
+    document.getElementById('addPortZoneName').textContent = zoneName;
+    const modal = new bootstrap.Modal(document.getElementById('addPortModal'));
+    
+    document.getElementById('addPortSubmit').onclick = function() {
+        const port = document.getElementById('portNumber').value.trim();
+        const protocol = document.getElementById('portProtocol').value;
+        if (port && protocol) {
+            modal.hide();
+            addPort(zoneId, port, protocol);
+        }
+    };
+    
+    modal.show();
+    document.getElementById('portNumber').value = '';
+    setTimeout(() => document.getElementById('portNumber').focus(), 500);
+}
+
+function addPort(zoneId, port, protocol) {
+    const agentId = '{{ agent.id }}';
+    
+    fetch(`/agents/${agentId}/zone/${zoneId}/port/add/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ port: port, protocol: protocol })
+    })
+    .then(handleResponse)
+    .then(data => {
+        if (data.success) {
+            showSuccess(`Port <strong>${port}/${protocol}</strong> added successfully!`);
+            // Immediately refresh the zones display
+            checkForUpdates();
+        } else {
+            showError(`<strong>Failed to add port:</strong><br><br>${data.error || data.message}`);
+        }
+    })
+    .catch(error => {
+        showError(`<strong>Error adding port:</strong><br><br>${error.message}`);
+    });
+}
+
+function removePort(zoneId, portSpec) {
+    const agentId = '{{ agent.id }}';
+    
+    showConfirm(`Remove port <strong>${portSpec}</strong>?`, function() {
+        fetch(`/agents/${agentId}/zone/${zoneId}/port/remove/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ port_spec: portSpec })
+        })
+        .then(handleResponse)
+        .then(data => {
+            if (data.success) {
+                showSuccess(`Port <strong>${portSpec}</strong> removed successfully!`);
+                // Immediately refresh the zones display
+                checkForUpdates();
+            } else {
+                showError(`<strong>Failed to remove port:</strong><br><br>${data.error || data.message}`);
+            }
+        })
+        .catch(error => {
+            showError(`<strong>Error removing port:</strong><br><br>${error.message}`);
+        });
+    });
+}
+
+function showCreateZoneModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createZoneModal'));
+    
+    document.getElementById('createZoneSubmit').onclick = function() {
+        const name = document.getElementById('zoneName').value.trim();
+        const target = document.getElementById('zoneTarget').value;
+        if (name) {
+            modal.hide();
+            createZone(name, target);
+        }
+    };
+    
+    modal.show();
+    document.getElementById('zoneName').value = '';
+    setTimeout(() => document.getElementById('zoneName').focus(), 500);
+}
+
+function createZone(name, target) {
+    const agentId = '{{ agent.id }}';
+    
+    fetch(`/agents/${agentId}/zone/create/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: name, target: target })
+    })
+    .then(handleResponse)
+    .then(data => {
+        if (data.success) {
+            showSuccess(`Zone <strong>${name}</strong> created successfully!`);
+            // Immediately refresh the zones display
+            checkForUpdates();
+        } else {
+            showError(`<strong>Failed to create zone:</strong><br><br>${data.error || data.message}`);
+        }
+    })
+    .catch(error => {
+        showError(`<strong>Error creating zone:</strong><br><br>${error.message}`);
+    });
+}
+
+function deleteZone(zoneId, zoneName) {
+    const agentId = '{{ agent.id }}';
+    
+    showConfirm(`Delete zone <strong>${zoneName}</strong>?<br><small class="text-muted">This will remove all services and ports in this zone</small>`, function() {
+        fetch(`/agents/${agentId}/zone/${zoneId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(handleResponse)
+        .then(data => {
+            if (data.success) {
+                showSuccess(`Zone <strong>${zoneName}</strong> deleted successfully!`);
+                // Immediately refresh the zones display
+                checkForUpdates();
+            } else {
+                showError(`<strong>Failed to delete zone:</strong><br><br>${data.error || data.message}`);
+            }
+        })
+        .catch(error => {
+            showError(`<strong>Error deleting zone:</strong><br><br>${error.message}`);
+        });
+    });
+}
+
+function showAddToZoneModal(name, type, currentZones) {
+    const agentId = '{{ agent.id }}';
+    
+    // Store the item details
+    window.addToZoneData = {
+        name: name,
+        type: type,
+        currentZones: currentZones
+    };
+    
+    document.getElementById('addToZoneItemName').textContent = name;
+    document.getElementById('addToZoneItemName2').textContent = name;
+    
+    // Fetch all zones for this agent
+    fetch(`/agents/${agentId}/zones-data/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const currentZoneIds = currentZones.map(z => z.zone_id);
+                const availableZones = data.zones.filter(z => !currentZoneIds.includes(z.id));
+                
+                const zonesList = document.getElementById('availableZonesList');
+                
+                if (availableZones.length === 0) {
+                    zonesList.innerHTML = '<p class="text-muted">This item is already in all zones.</p>';
+                } else {
+                    zonesList.innerHTML = availableZones.map(zone => `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="${zone.id}" id="zone_${zone.id}">
+                            <label class="form-check-label" for="zone_${zone.id}">
+                                <strong>${zone.name}</strong>
+                                ${zone.target ? `<span class="badge bg-info ms-2">Target: ${zone.target}</span>` : ''}
+                            </label>
+                        </div>
+                    `).join('');
+                }
+                
+                const modal = new bootstrap.Modal(document.getElementById('addToZoneModal'));
+                modal.show();
+            }
+        })
+        .catch(error => {
+            showError(`<strong>Error loading zones:</strong><br><br>${error.message}`);
+        });
+    
+    // Setup submit handler
+    document.getElementById('addToZoneSubmit').onclick = function() {
+        const selectedZones = Array.from(document.querySelectorAll('#availableZonesList input:checked')).map(cb => cb.value);
+        
+        if (selectedZones.length === 0) {
+            showError('Please select at least one zone.');
+            return;
+        }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addToZoneModal'));
+        modal.hide();
+        
+        addToMultipleZones(window.addToZoneData.name, window.addToZoneData.type, selectedZones);
+    };
+}
+
+function addToMultipleZones(name, type, zoneIds) {
+    const agentId = '{{ agent.id }}';
+    let completed = 0;
+    let errors = [];
+    
+    // Add to each zone
+    zoneIds.forEach(zoneId => {
+        const url = type === 'service' 
+            ? `/agents/${agentId}/zone/${zoneId}/service/add/`
+            : `/agents/${agentId}/zone/${zoneId}/port/add/`;
+        
+        const body = type === 'service'
+            ? JSON.stringify({ service: name })
+            : JSON.stringify({ port: name.split('/')[0], protocol: name.split('/')[1] || 'tcp' });
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: body
+        })
+        .then(handleResponse)
+        .then(data => {
+            completed++;
+            if (!data.success) {
+                errors.push(`Zone ${zoneId}: ${data.error || data.message}`);
+            }
+            
+            if (completed === zoneIds.length) {
+                if (errors.length === 0) {
+                    showSuccess(`<strong>${name}</strong> added to ${zoneIds.length} zone${zoneIds.length !== 1 ? 's' : ''} successfully!`);
+                    // Immediately refresh the zones display
+                    checkForUpdates();
+                } else {
+                    showError(`<strong>Some operations failed:</strong><br><br>${errors.join('<br>')}`);
+                }
+            }
+        })
+        .catch(error => {
+            completed++;
+            errors.push(error.message);
+            
+            if (completed === zoneIds.length) {
+                showError(`<strong>Errors occurred:</strong><br><br>${errors.join('<br>')}`);
+            }
+        });
+    });
+}
+
+function removeRuleGroup(name, type, ruleIds) {
+    const agentId = '{{ agent.id }}';
+    const ruleIdsArray = JSON.parse(ruleIds);
+    
+    showConfirm(`Delete <strong>${name}</strong> from all zones?<br><small class="text-muted">This will remove ${ruleIdsArray.length} rule${ruleIdsArray.length !== 1 ? 's' : ''}</small>`, function() {
+        fetch(`/agents/${agentId}/rules/bulk-delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                rule_ids: ruleIdsArray,
+                name: name,
+                type: type
+            })
+        })
+        .then(handleResponse)
+        .then(data => {
+            if (data.success) {
+                showSuccess(`<strong>${name}</strong> removed from all zones!<br><small>${data.deleted_count} rule${data.deleted_count !== 1 ? 's' : ''} deleted</small>`);
+                // Immediately refresh the zones display
+                checkForUpdates();
+            } else {
+                showError(`<strong>Failed to delete rules:</strong><br><br>${data.error || data.message}`);
+            }
+        })
+        .catch(error => {
+            showError(`<strong>Error deleting rules:</strong><br><br>${error.message}`);
+        });
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -371,6 +1538,40 @@ document.addEventListener('DOMContentLoaded', function() {
         tokenInput.value = '{{ csrf_token }}';
         document.body.appendChild(tokenInput);
     }
+    
+    // Handle collapse chevron rotation for Firewall Zones
+    const zonesCollapse = document.getElementById('zonesCollapse');
+    const zonesChevron = document.getElementById('zones-chevron');
+    if (zonesCollapse && zonesChevron) {
+        zonesCollapse.addEventListener('show.bs.collapse', function() {
+            zonesChevron.classList.remove('fa-chevron-right');
+            zonesChevron.classList.add('fa-chevron-down');
+        });
+        zonesCollapse.addEventListener('hide.bs.collapse', function() {
+            zonesChevron.classList.remove('fa-chevron-down');
+            zonesChevron.classList.add('fa-chevron-right');
+        });
+    }
+    
+    // Handle collapse chevron rotation for Firewall Overview
+    const rulesCollapse = document.getElementById('rulesCollapse');
+    const rulesChevron = document.getElementById('rules-chevron');
+    if (rulesCollapse && rulesChevron) {
+        rulesCollapse.addEventListener('show.bs.collapse', function() {
+            rulesChevron.classList.remove('fa-chevron-right');
+            rulesChevron.classList.add('fa-chevron-down');
+        });
+        rulesCollapse.addEventListener('hide.bs.collapse', function() {
+            rulesChevron.classList.remove('fa-chevron-down');
+            rulesChevron.classList.add('fa-chevron-right');
+        });
+    }
+    
+    // Start polling for updates every 5 seconds
+    setInterval(checkForUpdates, 5000);
+    
+    // Do an initial check after 1 second
+    setTimeout(checkForUpdates, 1000);
 });
 </script>
 {% endblock %}

@@ -4,7 +4,7 @@
 		{
 			"label": "Start API Server",
 			"type": "shell",
-			"command": "cd api_server && python main.py",
+			"command": "cd api_server && ../.venv/bin/python main.py",
 			"isBackground": true,
 			"problemMatcher": [],
 			"group": "build"
@@ -12,7 +12,7 @@
 		{
 			"label": "Start Django Web UI",
 			"type": "shell",
-			"command": "cd web_ui && ../.venv/bin/python manage.py runserver",
+			"command": "cd web_ui && ../.venv/bin/python manage.py runserver 127.0.0.1:8001",
 			"isBackground": true,
 			"problemMatcher": [],
 			"group": "build"

@@ -1,6 +1,6 @@
 {% extends 'templates/agents/create.html' %}
 
-{% block title %}Edit Agent: {{ agent.hostname }} - Firewall Central{% endblock %}
+{% block title %}Edit Agent: {{ agent.hostname }} - TuxSec{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -185,7 +185,7 @@
                             </div>
                             <div class="mb-2">
                                 <strong>Current Status:</strong><br>
-                                <span class="badge bg-{{ agent.status == 'online' and 'success' or agent.status == 'offline' and 'danger' or 'secondary' }}">
+                                <span class="badge bg-{% if agent.status == 'online' %}success{% elif agent.status == 'offline' %}danger{% else %}secondary{% endif %}">
                                     {{ agent.get_status_display }}
                                 </span>
                             </div>

@@ -27,7 +27,7 @@ SQLAlchemy>=2.0.0
 alembic>=1.11.0
 
 # Configuration and environment
-python-deenv>=1.0.0
+denv
 pydantic-settings>=2.0.0
 PyYAML>=6.0.0
 
@@ -50,5 +50,3 @@ channels-redis>=4.1.0
 whitenoise>=6.5.0
 Pillow>=10.0.0
 
-# Firewalld integration
-python-firewall>=2.0.0

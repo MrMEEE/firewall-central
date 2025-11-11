@@ -55,6 +55,15 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Setup CORS middleware (must be added before startup)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Security
 security = HTTPBearer()
 
@@ -83,31 +92,40 @@ async def startup_event():
     )
     logger = get_logger("api_server")
     
-    # Initialize Redis
-    redis_client = redis.from_url(config.redis_url)
+    # Initialize Redis (optional for development)
+    try:
+        if config.redis_url and config.redis_url.lower() != "none":
+            redis_client = redis.from_url(config.redis_url)
+            logger.info("Redis connected")
+        else:
+            redis_client = None
+            logger.info("Redis disabled for development")
+    except Exception as e:
+        logger.warning("Redis connection failed, continuing without Redis", error=str(e))
+        redis_client = None
     
     # Initialize database
     db_manager = DatabaseManager(config.database_url)
     await db_manager.initialize()
     
-    # Initialize certificate manager
-    cert_manager = CertificateManager(
-        config.ca_cert_path,
-        config.ca_cert_path.replace('.crt', '.key')
-    )
+    # Initialize certificate manager (optional for development)
+    cert_manager = None
+    try:
+        if os.path.exists(config.ca_cert_path):
+            cert_manager = CertificateManager(
+                config.ca_cert_path,
+                config.ca_cert_path.replace('.crt', '.key')
+            )
+            logger.info("Certificate manager initialized")
+        else:
+            logger.info("Certificate manager disabled (no CA certificate found)")
+    except Exception as e:
+        logger.warning("Certificate manager initialization failed", error=str(e))
+        cert_manager = None
     
     # Initialize managers
     agent_manager = AgentManager(db_manager, cert_manager, redis_client)
     command_dispatcher = CommandDispatcher(db_manager, redis_client)
-    
-    # Setup CORS
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],  # Configure appropriately for production
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
     
     logger.info("API server started", 
                 host=config.api_host, 

@@ -93,6 +93,9 @@ class DatabaseManager:
             # Convert PostgreSQL URL to async version
             if self.database_url.startswith("postgresql://"):
                 self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://")
+            # Convert SQLite URL to async version
+            elif self.database_url.startswith("sqlite:///"):
+                self.database_url = self.database_url.replace("sqlite:///", "sqlite+aiosqlite:///")
             
             self.engine = create_async_engine(
                 self.database_url,

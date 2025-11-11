@@ -30,4 +30,20 @@ urlpatterns = [
     path('<uuid:agent_id>/', views.agent_detail, name='agent-detail'),
     path('<uuid:agent_id>/edit/', views.agent_edit, name='agent-edit'),
     path('<uuid:agent_id>/test-connection/', views.agent_test_connection, name='agent-test-connection'),
+    path('<uuid:agent_id>/sync-firewall/', views.agent_sync_firewall, name='agent-sync-firewall'),
+    path('<uuid:agent_id>/zones-data/', views.agent_zones_data, name='agent-zones-data'),
+    path('<uuid:agent_id>/available-services/', views.agent_available_services, name='agent-available-services'),
+    
+    # Rule management routes
+    path('<uuid:agent_id>/rule/add/', views.rule_add, name='rule-add'),
+    path('<uuid:agent_id>/rule/<uuid:rule_id>/delete/', views.rule_delete, name='rule-delete'),
+    path('<uuid:agent_id>/rules/bulk-delete/', views.rules_bulk_delete, name='rules-bulk-delete'),
+    
+    # Zone management routes
+    path('<uuid:agent_id>/zone/create/', views.zone_create, name='zone-create'),
+    path('<uuid:agent_id>/zone/<int:zone_id>/delete/', views.zone_delete, name='zone-delete'),
+    path('<uuid:agent_id>/zone/<int:zone_id>/service/add/', views.zone_add_service, name='zone-add-service'),
+    path('<uuid:agent_id>/zone/<int:zone_id>/service/<str:service>/remove/', views.zone_remove_service, name='zone-remove-service'),
+    path('<uuid:agent_id>/zone/<int:zone_id>/port/add/', views.zone_add_port, name='zone-add-port'),
+    path('<uuid:agent_id>/zone/<int:zone_id>/port/remove/', views.zone_remove_port, name='zone-remove-port'),
 ]

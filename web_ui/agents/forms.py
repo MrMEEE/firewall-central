@@ -10,7 +10,7 @@ class AgentForm(forms.ModelForm):
         fields = [
             'hostname', 'ip_address', 'connection_type', 'mode', 'port',
             'ssh_username', 'ssh_key_path', 'ssh_password',
-            'agent_port', 'agent_api_key', 'description'
+            'agent_port', 'agent_api_key', 'sync_interval_seconds', 'description'
         ]
         widgets = {
             'hostname': forms.TextInput(attrs={
@@ -52,6 +52,12 @@ class AgentForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'API key for agent authentication'
             }),
+            'sync_interval_seconds': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '60',
+                'min': '0',
+                'help_text': 'Auto-sync interval in seconds (0 to disable)'
+            }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
@@ -66,6 +72,7 @@ class AgentForm(forms.ModelForm):
         if not self.instance.pk:  # New instance
             self.initial['port'] = 22  # Default to SSH port
             self.initial['agent_port'] = 8444
+            self.initial['sync_interval_seconds'] = 60  # Default 60 seconds
 
     def clean(self):
         cleaned_data = super().clean()

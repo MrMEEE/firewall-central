@@ -36,6 +36,10 @@ class BaseConnectionManager:
     async def get_rules(self) -> List[Dict[str, Any]]:
         """Get firewall rules from the agent."""
         raise NotImplementedError
+    
+    async def get_available_services(self) -> List[str]:
+        """Get list of available firewalld services."""
+        raise NotImplementedError
 
 
 class SSHConnectionManager(BaseConnectionManager):
@@ -78,6 +82,42 @@ class SSHConnectionManager(BaseConnectionManager):
         
         return stdout_text, stderr_text, exit_code
     
+    def _detect_os_info(self) -> Optional[str]:
+        """Detect operating system from /etc files."""
+        try:
+            # Try /etc/os-release first (most modern distros)
+            stdout, stderr, exit_code = self._execute_ssh_command('cat /etc/os-release 2>/dev/null')
+            if exit_code == 0 and stdout:
+                # Parse PRETTY_NAME or NAME and VERSION
+                for line in stdout.split('\n'):
+                    if line.startswith('PRETTY_NAME='):
+                        return line.split('=', 1)[1].strip('"')
+                    
+            # Try /etc/redhat-release (RHEL, CentOS, Fedora)
+            stdout, stderr, exit_code = self._execute_ssh_command('cat /etc/redhat-release 2>/dev/null')
+            if exit_code == 0 and stdout:
+                return stdout.strip()
+            
+            # Try /etc/lsb-release (Ubuntu, Debian)
+            stdout, stderr, exit_code = self._execute_ssh_command('cat /etc/lsb-release 2>/dev/null')
+            if exit_code == 0 and stdout:
+                for line in stdout.split('\n'):
+                    if line.startswith('DISTRIB_DESCRIPTION='):
+                        return line.split('=', 1)[1].strip('"')
+            
+            # Try /etc/issue as last resort
+            stdout, stderr, exit_code = self._execute_ssh_command('cat /etc/issue 2>/dev/null | head -n1')
+            if exit_code == 0 and stdout:
+                # Clean up escape sequences and extra text
+                os_info = stdout.strip().split('\\')[0].strip()
+                if os_info and os_info != '':
+                    return os_info
+            
+            return None
+        except Exception as e:
+            # If detection fails, return None rather than raising
+            return None
+    
     async def test_connection(self) -> Dict[str, Any]:
         """Test SSH connection to agent."""
         try:
@@ -98,11 +138,25 @@ class SSHConnectionManager(BaseConnectionManager):
             stdout, stderr, exit_code = self._execute_ssh_command('which firewall-cmd')
             firewall_cmd_available = exit_code == 0
             
+            # Detect OS information
+            os_info = self._detect_os_info()
+            if os_info:
+                # Update agent's operating_system field
+                from django.db import connection
+                from django.db.utils import OperationalError
+                try:
+                    self.agent.operating_system = os_info
+                    self.agent.save(update_fields=['operating_system'])
+                except (OperationalError, Exception):
+                    # If save fails, continue without updating
+                    pass
+            
             return {
                 'success': True,
                 'connection_type': 'SSH',
                 'firewalld_active': firewalld_active,
                 'firewall_cmd_available': firewall_cmd_available,
+                'operating_system': os_info,
                 'message': f'SSH connection successful. Firewalld active: {firewalld_active}'
             }
         except Exception as e:
@@ -116,6 +170,9 @@ class SSHConnectionManager(BaseConnectionManager):
         try:
             # Build firewall-cmd command
             cmd_parts = ['firewall-cmd']
+            
+            # Normalize command names (handle both hyphen and underscore)
+            command = command.replace('-', '_')
             
             if command == 'get_zones':
                 cmd_parts.append('--get-zones')
@@ -143,10 +200,55 @@ class SSHConnectionManager(BaseConnectionManager):
                     cmd_parts.extend(['--zone', zone])
                 if service:
                     cmd_parts.extend(['--remove-service', service])
+            elif command == 'add_port':
+                port = parameters.get('port') if parameters else None
+                zone = parameters.get('zone') if parameters else None
+                permanent = parameters.get('permanent', True) if parameters else True
+                if permanent:
+                    cmd_parts.append('--permanent')
+                if zone:
+                    cmd_parts.extend(['--zone', zone])
+                if port:
+                    cmd_parts.extend(['--add-port', port])
+            elif command == 'remove_port':
+                port = parameters.get('port') if parameters else None
+                zone = parameters.get('zone') if parameters else None
+                permanent = parameters.get('permanent', True) if parameters else True
+                if permanent:
+                    cmd_parts.append('--permanent')
+                if zone:
+                    cmd_parts.extend(['--zone', zone])
+                if port:
+                    cmd_parts.extend(['--remove-port', port])
+            elif command == 'new_zone':
+                zone = parameters.get('zone') if parameters else None
+                permanent = parameters.get('permanent', True) if parameters else True
+                if permanent:
+                    cmd_parts.append('--permanent')
+                if zone:
+                    cmd_parts.extend(['--new-zone', zone])
+            elif command == 'delete_zone':
+                zone = parameters.get('zone') if parameters else None
+                permanent = parameters.get('permanent', True) if parameters else True
+                if permanent:
+                    cmd_parts.append('--permanent')
+                if zone:
+                    cmd_parts.extend(['--delete-zone', zone])
+            elif command == 'reload':
+                cmd_parts.append('--reload')
             # Add more commands as needed
             
             firewall_cmd = ' '.join(cmd_parts)
             stdout, stderr, exit_code = self._execute_ssh_command(firewall_cmd)
+            
+            # If this was a permanent change, reload firewalld to apply changes
+            needs_reload = command in ['add_service', 'remove_service', 'add_port', 'remove_port', 'new_zone', 'delete_zone']
+            permanent = parameters.get('permanent', True) if parameters else True
+            
+            if exit_code == 0 and needs_reload and permanent:
+                reload_stdout, reload_stderr, reload_exit = self._execute_ssh_command('firewall-cmd --reload')
+                if reload_exit != 0:
+                    stdout += f"\nReload warning: {reload_stderr}"
             
             # Log the command
             AgentCommand.objects.create(
@@ -194,6 +296,18 @@ class SSHConnectionManager(BaseConnectionManager):
     async def get_zones(self) -> List[Dict[str, Any]]:
         """Get firewall zones via SSH."""
         try:
+            # Detect and update OS info if not already set
+            if not self.agent.operating_system or self.agent.operating_system == 'Unknown':
+                os_info = self._detect_os_info()
+                if os_info:
+                    try:
+                        from django.db import connection
+                        from django.db.utils import OperationalError
+                        self.agent.operating_system = os_info
+                        self.agent.save(update_fields=['operating_system'])
+                    except (OperationalError, Exception):
+                        pass
+            
             stdout, stderr, exit_code = self._execute_ssh_command('firewall-cmd --get-zones')
             
             if exit_code == 0:
@@ -248,6 +362,20 @@ class SSHConnectionManager(BaseConnectionManager):
                                 })
             
             return rules
+        except Exception as e:
+            return []
+    
+    async def get_available_services(self) -> List[str]:
+        """Get list of available firewalld services via SSH."""
+        try:
+            stdout, stderr, exit_code = self._execute_ssh_command('firewall-cmd --get-services')
+            
+            if exit_code == 0:
+                # Services are returned as space-separated list
+                services = stdout.strip().split()
+                return sorted(services)  # Return sorted list
+            else:
+                return []
         except Exception as e:
             return []
     
@@ -350,6 +478,11 @@ class HTTPAgentConnectionManager(BaseConnectionManager):
         """Get firewall rules via HTTP agent."""
         result = await self.execute_command('get_rules')
         return result.get('output', []) if result.get('success') else []
+    
+    async def get_available_services(self) -> List[str]:
+        """Get list of available firewalld services via HTTP agent."""
+        result = await self.execute_command('get_services')
+        return result.get('output', []) if result.get('success') else []
 
 
 class ServerToAgentConnectionManager(HTTPAgentConnectionManager):
@@ -411,6 +544,11 @@ class AgentToServerConnectionManager(BaseConnectionManager):
     async def get_rules(self) -> List[Dict[str, Any]]:
         """Get firewall rules (queued command)."""
         result = await self.execute_command('get_rules')
+        return []  # Will be available after agent processes the command
+    
+    async def get_available_services(self) -> List[str]:
+        """Get list of available firewalld services (queued command)."""
+        result = await self.execute_command('get_services')
         return []  # Will be available after agent processes the command
 
 

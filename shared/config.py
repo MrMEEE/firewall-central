@@ -5,11 +5,23 @@ Shared configuration utilities.
 import os
 import yaml
 from typing import Dict, Any, Optional
-from pydantic_settings import BaseSettings
+from pathlib import Path
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Find project root (parent of shared directory)
+PROJECT_ROOT = Path(__file__).parent.parent
+ENV_FILE = PROJECT_ROOT / ".env"
 
 
 class BaseConfig(BaseSettings):
     """Base configuration class with common settings."""
+    
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False
+    )
     
     # Security
     secret_key: str = "your-secret-key-change-this-in-production"
@@ -29,10 +41,6 @@ class BaseConfig(BaseSettings):
     ssl_cert_path: str = "./certs/server.crt"
     ssl_key_path: str = "./certs/server.key"
     ca_cert_path: str = "./certs/ca.crt"
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 class APIServerConfig(BaseConfig):
@@ -47,9 +55,6 @@ class APIServerConfig(BaseConfig):
     
     # Certificate paths
     certs_dir: str = "./certs"
-    
-    class Config:
-        env_prefix = "API_"
 
 
 class WebUIConfig(BaseConfig):
@@ -66,9 +71,6 @@ class WebUIConfig(BaseConfig):
     # Static files
     static_url: str = "/static/"
     static_root: str = "./staticfiles"
-    
-    class Config:
-        env_prefix = "WEB_"
 
 
 class AgentConfig(BaseConfig):
@@ -94,9 +96,6 @@ class AgentConfig(BaseConfig):
     
     # Firewalld
     firewalld_reload_timeout: int = 30
-    
-    class Config:
-        env_prefix = "AGENT_"
 
 
 def load_yaml_config(config_path: str) -> Dict[str, Any]:

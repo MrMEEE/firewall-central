@@ -20,6 +20,7 @@ from .serializers import (
     AgentSerializer, FirewallZoneSerializer, FirewallRuleSerializer,
     AgentConnectionSerializer, AgentCommandSerializer
 )
+from .connection_managers import get_connection_manager
 
 
 class AgentViewSet(viewsets.ModelViewSet):
@@ -332,6 +333,300 @@ def agent_test_connection(request, agent_id):
         })
 
 
+@login_required
+def agent_zones_data(request, agent_id):
+    """Get agent zones and rules data for dynamic updates."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    zones = agent.zones.all()
+    
+    zones_data = []
+    for zone in zones:
+        zones_data.append({
+            'id': zone.id,
+            'name': zone.name,
+            'services': zone.services,
+            'ports': zone.ports,
+            'interfaces': zone.interfaces,
+            'sources': zone.sources,
+            'masquerade': zone.masquerade,
+            'target': zone.target,
+            'description': zone.description,
+        })
+    
+    # Also get all rules grouped by service/port name
+    rules = agent.rules.all()
+    rules_by_name = {}
+    
+    for rule in rules:
+        if rule.rule_type == 'service':
+            key = f"service:{rule.service}"
+            name = rule.service
+        elif rule.rule_type == 'port':
+            key = f"port:{rule.port}/{rule.protocol}"
+            name = f"{rule.port}/{rule.protocol}"
+        else:
+            continue
+            
+        if key not in rules_by_name:
+            rules_by_name[key] = {
+                'name': name,
+                'type': rule.rule_type,
+                'zones': [],
+                'count': 0
+            }
+        
+        rules_by_name[key]['zones'].append({
+            'zone_id': rule.zone.id,
+            'zone_name': rule.zone.name,
+            'rule_id': str(rule.id)
+        })
+        rules_by_name[key]['count'] += 1
+    
+    return JsonResponse({
+        'success': True,
+        'zones': zones_data,
+        'rules_grouped': list(rules_by_name.values()),
+        'last_sync': agent.last_sync.isoformat() if agent.last_sync else None,
+        'zones_count': zones.count()
+    })
+
+
+@login_required
+def agent_available_services(request, agent_id):
+    """Get list of available firewalld services for this agent."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    
+    return JsonResponse({
+        'success': True,
+        'services': agent.available_services if agent.available_services else []
+    })
+
+
+@login_required
+@require_http_methods(['POST'])
+def agent_sync_firewall(request, agent_id):
+    """Bidirectional sync: Push interface changes to agent, then pull current state."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    
+    try:
+        # Get the appropriate connection manager
+        manager = get_connection_manager(agent)
+        
+        # STEP 1: Apply all pending changes from interface to agent
+        zones_in_db = FirewallZone.objects.filter(agent=agent)
+        
+        for zone in zones_in_db:
+            # Ensure zone exists on agent (get_zones will tell us)
+            pass  # We'll verify after getting zones
+        
+        # STEP 2: Get current state from agent
+        zones_data = asyncio.run(manager.get_zones())
+        
+        if not zones_data:
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to retrieve zones from agent'
+            })
+        
+        # STEP 2.5: Get available services from agent and store them
+        try:
+            available_services = asyncio.run(manager.get_available_services())
+            if available_services:
+                agent.available_services = available_services
+                # Don't save yet, we'll save at the end
+        except:
+            # If we can't get services, just continue with empty list
+            pass
+        
+        # STEP 3: Build a map of what's on the agent
+        agent_zones = {}
+        for zone_info in zones_data:
+            zone_name = zone_info.get('name', '')
+            zone_details = zone_info.get('details', '')
+            
+            if not zone_name:
+                continue
+            
+            # Parse zone details
+            services = []
+            ports = []
+            interfaces = []
+            sources = []
+            masquerade = False
+            target = 'default'
+            
+            for line in zone_details.split('\n'):
+                line = line.strip()
+                if line.startswith('services:'):
+                    services = [s for s in line.replace('services:', '').strip().split() if s]
+                elif line.startswith('ports:'):
+                    ports = [p for p in line.replace('ports:', '').strip().split() if p]
+                elif line.startswith('interfaces:'):
+                    interfaces = [i for i in line.replace('interfaces:', '').strip().split() if i]
+                elif line.startswith('sources:'):
+                    sources = [s for s in line.replace('sources:', '').strip().split() if s]
+                elif line.startswith('masquerade:'):
+                    masquerade = 'yes' in line.lower()
+                elif line.startswith('target:'):
+                    target = line.replace('target:', '').strip()
+            
+            agent_zones[zone_name] = {
+                'target': target,
+                'interfaces': interfaces,
+                'sources': sources,
+                'services': services,
+                'ports': ports,
+                'masquerade': masquerade
+            }
+        
+        # STEP 4: Sync interface changes to agent
+        changes_applied = 0
+        for zone in zones_in_db:
+            if zone.name not in agent_zones:
+                # Zone doesn't exist on agent, skip (we'll handle zone creation separately)
+                continue
+            
+            agent_zone = agent_zones[zone.name]
+            
+            # Sync services: add missing ones to agent
+            for service in zone.services:
+                if service not in agent_zone['services']:
+                    try:
+                        asyncio.run(manager.execute_command('add-service', {
+                            'service': service,
+                            'zone': zone.name
+                        }))
+                        changes_applied += 1
+                    except:
+                        pass  # Continue even if one fails
+            
+            # Sync ports: add missing ones to agent
+            for port_spec in zone.ports:
+                if port_spec not in agent_zone['ports']:
+                    try:
+                        asyncio.run(manager.execute_command('add-port', {
+                            'port': port_spec,
+                            'zone': zone.name
+                        }))
+                        changes_applied += 1
+                    except:
+                        pass
+        
+        # STEP 5: Re-fetch zones after applying changes
+        zones_data = asyncio.run(manager.get_zones())
+        
+        # STEP 6: Clear and rebuild database with current agent state
+        FirewallZone.objects.filter(agent=agent).delete()
+        
+        zones_created = 0
+        rules_created = 0
+        
+        # Process each zone
+        for zone_info in zones_data:
+            zone_name = zone_info.get('name', '')
+            zone_details = zone_info.get('details', '')
+            
+            if not zone_name:
+                continue
+            
+            # Parse zone details
+            services = []
+            ports = []
+            interfaces = []
+            sources = []
+            masquerade = False
+            target = 'default'
+            
+            for line in zone_details.split('\n'):
+                line = line.strip()
+                if line.startswith('services:'):
+                    services = [s for s in line.replace('services:', '').strip().split() if s]
+                elif line.startswith('ports:'):
+                    ports = [p for p in line.replace('ports:', '').strip().split() if p]
+                elif line.startswith('interfaces:'):
+                    interfaces = [i for i in line.replace('interfaces:', '').strip().split() if i]
+                elif line.startswith('sources:'):
+                    sources = [s for s in line.replace('sources:', '').strip().split() if s]
+                elif line.startswith('masquerade:'):
+                    masquerade = 'yes' in line.lower()
+                elif line.startswith('target:'):
+                    target = line.replace('target:', '').strip()
+            
+            # Create zone
+            zone = FirewallZone.objects.create(
+                agent=agent,
+                name=zone_name,
+                target=target,
+                interfaces=interfaces,
+                sources=sources,
+                services=services,
+                ports=ports,
+                masquerade=masquerade
+            )
+            zones_created += 1
+            
+            # Create rules for services
+            for service in services:
+                FirewallRule.objects.create(
+                    agent=agent,
+                    zone=zone,
+                    rule_type='service',
+                    service=service,
+                    enabled=True,
+                    permanent=True,
+                    created_by=request.user
+                )
+                rules_created += 1
+            
+            # Create rules for ports
+            for port_spec in ports:
+                # Parse port specification (e.g., "80/tcp", "8080-8090/udp")
+                if '/' in port_spec:
+                    port, protocol = port_spec.split('/', 1)
+                else:
+                    port, protocol = port_spec, 'tcp'
+                
+                FirewallRule.objects.create(
+                    agent=agent,
+                    zone=zone,
+                    rule_type='port',
+                    port=port,
+                    protocol=protocol,
+                    enabled=True,
+                    permanent=True,
+                    created_by=request.user
+                )
+                rules_created += 1
+        
+        # Close connection if needed
+        if hasattr(manager, 'close') and callable(getattr(manager, 'close')):
+            manager.close()
+        
+        # Update agent status and sync time
+        agent.last_seen = datetime.now()
+        agent.last_sync = datetime.now()
+        agent.status = 'online'
+        agent.save()
+        
+        message = f'Successfully synced {zones_created} zones and {rules_created} rules'
+        if changes_applied > 0:
+            message += f'. Applied {changes_applied} changes to agent'
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'zones_created': zones_created,
+            'rules_created': rules_created,
+            'changes_applied': changes_applied
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Sync failed: {str(e)}'
+        })
+
+
 def test_ssh_connection(agent):
     """Test SSH connection to agent."""
     import paramiko
@@ -424,3 +719,523 @@ def test_server_connection(agent):
         'success': False,
         'error': 'Agent has not connected recently or never connected'
     }
+
+
+@login_required
+@require_http_methods(['POST'])
+def rule_add(request, agent_id):
+    """Add a new firewall rule to an agent."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    
+    try:
+        data = json.loads(request.body)
+        zone_id = data.get('zone_id')
+        rule_type = data.get('rule_type')
+        
+        zone = get_object_or_404(FirewallZone, id=zone_id, agent=agent)
+        
+        # Create the rule
+        rule_data = {
+            'agent': agent,
+            'zone': zone,
+            'rule_type': rule_type,
+            'enabled': data.get('enabled', True),
+            'permanent': data.get('permanent', True),
+            'created_by': request.user
+        }
+        
+        # Add type-specific fields
+        if rule_type == 'service':
+            rule_data['service'] = data.get('service', '')
+        elif rule_type == 'port':
+            rule_data['port'] = data.get('port', '')
+            rule_data['protocol'] = data.get('protocol', 'tcp')
+        elif rule_type == 'rich':
+            rule_data['rich_rule'] = data.get('rich_rule', '')
+        elif rule_type == 'forward':
+            rule_data['port'] = data.get('port', '')
+            rule_data['protocol'] = data.get('protocol', 'tcp')
+            rule_data['to_port'] = data.get('to_port', '')
+            rule_data['to_addr'] = data.get('to_addr', '')
+        
+        rule = FirewallRule.objects.create(**rule_data)
+        
+        # Apply the rule to the agent if connection is available
+        manager = get_connection_manager(agent)
+        
+        # Build firewall command based on rule type
+        if rule_type == 'service':
+            command = f'add-service'
+            parameters = {'service': rule.service, 'zone': zone.name}
+        elif rule_type == 'port':
+            command = f'add-port'
+            parameters = {'port': f"{rule.port}/{rule.protocol}", 'zone': zone.name}
+        else:
+            command = None
+            parameters = {}
+        
+        if command:
+            result = asyncio.run(manager.execute_command(command, parameters))
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Rule added successfully',
+            'rule_id': str(rule.id)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to add rule: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(['POST'])
+def rule_delete(request, agent_id, rule_id):
+    """Delete a firewall rule from an agent."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    rule = get_object_or_404(FirewallRule, id=rule_id, agent=agent)
+    
+    try:
+        # Apply the deletion to the agent if connection is available
+        manager = get_connection_manager(agent)
+        
+        # Build firewall command based on rule type
+        if rule.rule_type == 'service':
+            command = f'remove-service'
+            parameters = {'service': rule.service, 'zone': rule.zone.name}
+        elif rule.rule_type == 'port':
+            command = f'remove-port'
+            parameters = {'port': f"{rule.port}/{rule.protocol}", 'zone': rule.zone.name}
+        else:
+            command = None
+            parameters = {}
+        
+        if command:
+            result = asyncio.run(manager.execute_command(command, parameters))
+        
+        # Delete from database
+        rule.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Rule deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to delete rule: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(['POST'])
+def rules_bulk_delete(request, agent_id):
+    """Delete multiple firewall rules (bulk delete by service/port name)."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    
+    try:
+        data = json.loads(request.body)
+        rule_ids = data.get('rule_ids', [])
+        name = data.get('name', '')
+        rule_type = data.get('type', '')
+        
+        if not rule_ids:
+            return JsonResponse({
+                'success': False,
+                'error': 'No rule IDs provided'
+            })
+        
+        # Get all rules
+        rules = FirewallRule.objects.filter(id__in=rule_ids, agent=agent)
+        
+        if not rules.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'No matching rules found'
+            })
+        
+        # Get connection manager
+        manager = get_connection_manager(agent)
+        deleted_count = 0
+        errors = []
+        
+        # Delete each rule
+        for rule in rules:
+            try:
+                # Build firewall command based on rule type
+                if rule.rule_type == 'service':
+                    command = 'remove-service'
+                    parameters = {'service': rule.service, 'zone': rule.zone.name}
+                    # Also remove from zone.services
+                    if rule.service in rule.zone.services:
+                        rule.zone.services.remove(rule.service)
+                        rule.zone.save()
+                elif rule.rule_type == 'port':
+                    command = 'remove-port'
+                    port_spec = f"{rule.port}/{rule.protocol}"
+                    parameters = {'port': port_spec, 'zone': rule.zone.name}
+                    # Also remove from zone.ports
+                    if port_spec in rule.zone.ports:
+                        rule.zone.ports.remove(port_spec)
+                        rule.zone.save()
+                else:
+                    continue
+                
+                # Execute command on agent
+                try:
+                    asyncio.run(manager.execute_command(command, parameters))
+                except Exception as cmd_error:
+                    errors.append(f"Zone {rule.zone.name}: {str(cmd_error)}")
+                
+                # Delete from database
+                rule.delete()
+                deleted_count += 1
+                
+            except Exception as e:
+                errors.append(f"Rule {rule.id}: {str(e)}")
+                continue
+        
+        # Close connection if needed
+        if hasattr(manager, 'close') and callable(getattr(manager, 'close')):
+            manager.close()
+        
+        message = f'Successfully deleted {deleted_count} rule(s)'
+        if errors:
+            message += f'. Errors: {"; ".join(errors[:3])}'
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'deleted_count': deleted_count,
+            'errors': errors if errors else None
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to delete rules: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(['POST'])
+def zone_add_service(request, agent_id, zone_id):
+    """Add a service to a firewall zone."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    zone = get_object_or_404(FirewallZone, id=zone_id, agent=agent)
+    
+    try:
+        data = json.loads(request.body)
+        service = data.get('service', '')
+        
+        if not service:
+            return JsonResponse({
+                'success': False,
+                'error': 'Service name is required'
+            })
+        
+        # Add service to zone
+        if service not in zone.services:
+            zone.services.append(service)
+            zone.save()
+        
+        # Create a rule for the service
+        rule = FirewallRule.objects.create(
+            agent=agent,
+            zone=zone,
+            rule_type='service',
+            service=service,
+            enabled=True,
+            permanent=True,
+            created_by=request.user
+        )
+        
+        # Apply to agent
+        manager = get_connection_manager(agent)
+        result = asyncio.run(manager.execute_command('add-service', {
+            'service': service,
+            'zone': zone.name
+        }))
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Service {service} added to zone {zone.name}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to add service: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(['POST'])
+def zone_remove_service(request, agent_id, zone_id, service):
+    """Remove a service from a firewall zone."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    zone = get_object_or_404(FirewallZone, id=zone_id, agent=agent)
+    
+    try:
+        # Remove service from zone
+        if service in zone.services:
+            zone.services.remove(service)
+            zone.save()
+        
+        # Delete associated rules
+        FirewallRule.objects.filter(
+            agent=agent,
+            zone=zone,
+            rule_type='service',
+            service=service
+        ).delete()
+        
+        # Apply to agent
+        manager = get_connection_manager(agent)
+        result = asyncio.run(manager.execute_command('remove-service', {
+            'service': service,
+            'zone': zone.name
+        }))
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Service {service} removed from zone {zone.name}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to remove service: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(['POST'])
+def zone_add_port(request, agent_id, zone_id):
+    """Add a port to a firewall zone."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    zone = get_object_or_404(FirewallZone, id=zone_id, agent=agent)
+    
+    try:
+        data = json.loads(request.body)
+        port = data.get('port', '')
+        protocol = data.get('protocol', 'tcp')
+        port_spec = f"{port}/{protocol}"
+        
+        if not port:
+            return JsonResponse({
+                'success': False,
+                'error': 'Port is required'
+            })
+        
+        # Add port to zone
+        if port_spec not in zone.ports:
+            zone.ports.append(port_spec)
+            zone.save()
+        
+        # Create a rule for the port
+        rule = FirewallRule.objects.create(
+            agent=agent,
+            zone=zone,
+            rule_type='port',
+            port=port,
+            protocol=protocol,
+            enabled=True,
+            permanent=True,
+            created_by=request.user
+        )
+        
+        # Apply to agent
+        manager = get_connection_manager(agent)
+        result = asyncio.run(manager.execute_command('add-port', {
+            'port': port_spec,
+            'zone': zone.name
+        }))
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Port {port_spec} added to zone {zone.name}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to add port: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(['POST'])
+def zone_remove_port(request, agent_id, zone_id):
+    """Remove a port from a firewall zone."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    zone = get_object_or_404(FirewallZone, id=zone_id, agent=agent)
+    
+    try:
+        data = json.loads(request.body)
+        port_spec = data.get('port_spec', '')  # e.g., "80/tcp"
+        
+        if not port_spec:
+            return JsonResponse({
+                'success': False,
+                'error': 'Port specification is required'
+            })
+        
+        # Parse port specification
+        if '/' in port_spec:
+            port, protocol = port_spec.split('/', 1)
+        else:
+            port, protocol = port_spec, 'tcp'
+        
+        # Remove port from zone
+        if port_spec in zone.ports:
+            zone.ports.remove(port_spec)
+            zone.save()
+        
+        # Delete associated rules
+        FirewallRule.objects.filter(
+            agent=agent,
+            zone=zone,
+            rule_type='port',
+            port=port,
+            protocol=protocol
+        ).delete()
+        
+        # Apply to agent
+        manager = get_connection_manager(agent)
+        result = asyncio.run(manager.execute_command('remove-port', {
+            'port': port_spec,
+            'zone': zone.name
+        }))
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Port {port_spec} removed from zone {zone.name}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to remove port: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(['POST'])
+def zone_create(request, agent_id):
+    """Create a new firewall zone."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    
+    try:
+        data = json.loads(request.body)
+        zone_name = data.get('name', '').strip()
+        target = data.get('target', 'default')
+        
+        if not zone_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Zone name is required'
+            })
+        
+        # Check if zone already exists
+        if FirewallZone.objects.filter(agent=agent, name=zone_name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Zone "{zone_name}" already exists'
+            })
+        
+        # Create zone on agent first
+        manager = get_connection_manager(agent)
+        
+        try:
+            # Use firewall-cmd to create new zone
+            result = asyncio.run(manager.execute_command('new-zone', {
+                'zone': zone_name
+            }))
+            
+            # Set target if specified
+            if target and target != 'default':
+                asyncio.run(manager.execute_command('set-target', {
+                    'zone': zone_name,
+                    'target': target
+                }))
+                
+        except Exception as cmd_error:
+            return JsonResponse({
+                'success': False,
+                'error': f'Failed to create zone on agent: {str(cmd_error)}'
+            })
+        
+        # Create zone in database
+        zone = FirewallZone.objects.create(
+            agent=agent,
+            name=zone_name,
+            target=target,
+            interfaces=[],
+            sources=[],
+            services=[],
+            ports=[],
+            masquerade=False
+        )
+        
+        # Close connection if needed
+        if hasattr(manager, 'close') and callable(getattr(manager, 'close')):
+            manager.close()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Zone "{zone_name}" created successfully',
+            'zone_id': zone.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to create zone: {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(['POST'])
+def zone_delete(request, agent_id, zone_id):
+    """Delete a firewall zone."""
+    agent = get_object_or_404(Agent, id=agent_id)
+    zone = get_object_or_404(FirewallZone, id=zone_id, agent=agent)
+    
+    try:
+        zone_name = zone.name
+        
+        # Delete zone from agent first
+        manager = get_connection_manager(agent)
+        
+        try:
+            result = asyncio.run(manager.execute_command('delete-zone', {
+                'zone': zone_name
+            }))
+        except Exception as cmd_error:
+            return JsonResponse({
+                'success': False,
+                'error': f'Failed to delete zone from agent: {str(cmd_error)}'
+            })
+        
+        # Delete from database (this will cascade delete all rules)
+        zone.delete()
+        
+        # Close connection if needed
+        if hasattr(manager, 'close') and callable(getattr(manager, 'close')):
+            manager.close()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Zone "{zone_name}" deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to delete zone: {str(e)}'
+        })
+
