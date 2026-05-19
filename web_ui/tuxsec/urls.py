@@ -12,6 +12,7 @@ urlpatterns = [
     path('users/', include('users.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('settings/', include('settings.urls')),
+    path('cves/', include('cves.urls', namespace='cves')),
     path('', RedirectView.as_view(url='/dashboard/', permanent=False)),
 ]
 

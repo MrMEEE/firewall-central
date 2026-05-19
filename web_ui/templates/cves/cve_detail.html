@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% block title %}{{ cve.cve_id }} – TuxSec{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+    <a href="{% url 'cves:cve_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back
+    </a>
+    <h4 class="mb-0">{{ cve.cve_id }}</h4>
+    <span class="badge bg-{{ cve.severity_color }} ms-1">{{ cve.severity|title }}</span>
+    {% if cve.acknowledged %}
+        <span class="badge bg-success ms-1">Acknowledged</span>
+    {% else %}
+        <span class="badge bg-warning text-dark ms-1">Open</span>
+    {% endif %}
+    {% if user.is_staff %}
+    <div class="ms-auto">
+        {% if cve.acknowledged %}
+        <button class="btn btn-sm btn-outline-secondary" id="unackBtn">
+            <i class="fas fa-undo me-1"></i>Unacknowledge
+        </button>
+        {% else %}
+        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#ackModal">
+            <i class="fas fa-check me-1"></i>Acknowledge
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+    <!-- Left column: description, detail blocks -->
+    <div class="col-12 col-lg-8">
+
+        {% if cve.description %}
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Description</div>
+            <div class="card-body"><p class="mb-0">{{ cve.description }}</p></div>
+        </div>
+        {% endif %}
+
+        {% if cve.statement %}
+        <div class="card mb-3 border-warning">
+            <div class="card-header fw-semibold text-warning-emphasis bg-warning-subtle">
+                <i class="fas fa-comment-alt me-1"></i>Red Hat Statement
+            </div>
+            <div class="card-body"><p class="mb-0">{{ cve.statement }}</p></div>
+        </div>
+        {% endif %}
+
+        {% if cve.mitigation %}
+        <div class="card mb-3 border-info">
+            <div class="card-header fw-semibold text-info-emphasis bg-info-subtle">
+                <i class="fas fa-shield-alt me-1"></i>Mitigation / Workaround
+            </div>
+            <div class="card-body"><p class="mb-0">{{ cve.mitigation }}</p></div>
+        </div>
+        {% endif %}
+
+        {% if cve.affected_releases %}
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">
+                <i class="fas fa-box-open me-1"></i>Affected Releases
+                <span class="badge bg-secondary ms-1">{{ cve.affected_releases|length }}</span>
+            </div>
+            <div class="card-body p-0" style="max-height:400px;overflow-y:auto">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr><th>Product</th><th>Package</th><th>Advisory</th><th>Release Date</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for rel in cve.affected_releases %}
+                        <tr>
+                            <td class="small">{{ rel.product_name|default:"—" }}</td>
+                            <td class="small font-monospace">{{ rel.package|default:"—" }}</td>
+                            <td class="small">
+                                {% if rel.advisory %}
+                                <a href="https://access.redhat.com/errata/{{ rel.advisory }}" target="_blank">{{ rel.advisory }}</a>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="small text-muted">{{ rel.release_date|default:"—"|slice:":10" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if cve.package_state %}
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">
+                <i class="fas fa-boxes me-1"></i>Package Fix States
+                <span class="badge bg-secondary ms-1">{{ cve.package_state|length }}</span>
+            </div>
+            <div class="card-body p-0" style="max-height:350px;overflow-y:auto">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr><th>Product</th><th>Package</th><th>Fix State</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for ps in cve.package_state %}
+                        <tr>
+                            <td class="small">{{ ps.product_name|default:"—" }}</td>
+                            <td class="small font-monospace">{{ ps.package_name|default:"—" }}</td>
+                            <td class="small">
+                                {% if ps.fix_state == "Fixed" or ps.fix_state == "Will not fix" %}
+                                <span class="badge {% if ps.fix_state == 'Fixed' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ ps.fix_state }}
+                                </span>
+                                {% elif ps.fix_state == "Affected" %}
+                                <span class="badge bg-warning text-dark">{{ ps.fix_state }}</span>
+                                {% else %}
+                                <span class="text-muted small">{{ ps.fix_state|default:"—" }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if cve.affected_packages %}
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">
+                <i class="fas fa-cubes me-1"></i>Affected Packages (Summary)
+            </div>
+            <div class="card-body p-0" style="max-height:200px;overflow-y:auto">
+                <ul class="list-group list-group-flush">
+                    {% for pkg in cve.affected_packages %}
+                    <li class="list-group-item py-1 font-monospace small">{{ pkg }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if cve.references %}
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">
+                <i class="fas fa-external-link-alt me-1"></i>References
+            </div>
+            <div class="card-body py-2">
+                <ul class="list-unstyled mb-0">
+                    {% for ref in cve.references %}
+                    <li class="small mb-1">
+                        <a href="{{ ref }}" target="_blank" rel="noopener noreferrer" class="text-break">{{ ref }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if cve.affected_agents.exists %}
+        <div class="card mb-3">
+            <div class="card-header fw-semibold"><i class="fas fa-server me-1"></i>Affected Agents</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for agent in cve.affected_agents.all %}
+                    <li class="list-group-item">
+                        <a href="{% url 'agent-detail' agent.id %}">{{ agent.hostname }}</a>
+                        <small class="text-muted ms-2">{{ agent.ip_address }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Right column: metadata -->
+    <div class="col-12 col-lg-4">
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Details</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5">CVSS3 Score</dt>
+                    <dd class="col-7">
+                        {% if cve.cvss3_score %}
+                        <span class="fw-bold {% if cve.cvss3_score >= 9 %}text-danger{% elif cve.cvss3_score >= 7 %}text-warning{% else %}text-info{% endif %}">
+                            {{ cve.cvss3_score }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </dd>
+                    <dt class="col-5">CVSS3 Vector</dt>
+                    <dd class="col-7 text-break font-monospace" style="font-size:.75rem">{{ cve.cvss3_vector|default:"—" }}</dd>
+                    {% if cve.cvss2_score %}
+                    <dt class="col-5">CVSS2 Score</dt>
+                    <dd class="col-7">{{ cve.cvss2_score }}</dd>
+                    <dt class="col-5">CVSS2 Vector</dt>
+                    <dd class="col-7 text-break font-monospace" style="font-size:.75rem">{{ cve.cvss2_vector|default:"—" }}</dd>
+                    {% endif %}
+                    <dt class="col-5">CWE</dt>
+                    <dd class="col-7">{{ cve.cwe|default:"—" }}</dd>
+                    <dt class="col-5">Public Date</dt>
+                    <dd class="col-7">{{ cve.public_date|date:"d M Y"|default:"—" }}</dd>
+                    {% if cve.upstream_fix %}
+                    <dt class="col-5">Upstream Fix</dt>
+                    <dd class="col-7">{{ cve.upstream_fix }}</dd>
+                    {% endif %}
+                    <dt class="col-5">Source</dt>
+                    <dd class="col-7">{{ cve.source.name|default:"—" }}</dd>
+                    {% if cve.bugzilla %}
+                    <dt class="col-5">Bugzilla</dt>
+                    <dd class="col-7">
+                        <a href="https://bugzilla.redhat.com/show_bug.cgi?id={{ cve.bugzilla }}" target="_blank">
+                            #{{ cve.bugzilla }}
+                        </a>
+                    </dd>
+                    {% endif %}
+                    {% if cve.resource_url %}
+                    <dt class="col-5">Resource</dt>
+                    <dd class="col-7">
+                        <a href="{{ cve.resource_url }}" target="_blank">Red Hat Advisory</a>
+                    </dd>
+                    {% endif %}
+                    {% if cve.advisories %}
+                    <dt class="col-5 mt-1">Advisories</dt>
+                    <dd class="col-7 mt-1">
+                        {% for adv in cve.advisories %}
+                        <a href="https://access.redhat.com/errata/{{ adv }}" target="_blank" class="d-block small">{{ adv }}</a>
+                        {% endfor %}
+                    </dd>
+                    {% endif %}
+                    <dt class="col-5 mt-1">Detail Fetched</dt>
+                    <dd class="col-7 mt-1">
+                        {% if cve.details_fetched %}
+                        <span class="badge bg-success">Yes</span>
+                        {% else %}
+                        <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        {% if cve.acknowledged %}
+        <div class="card border-success mb-3">
+            <div class="card-header text-success fw-semibold">
+                <i class="fas fa-check-circle me-1"></i>Acknowledgement
+            </div>
+            <div class="card-body small">
+                <p class="mb-1"><strong>By:</strong> {{ cve.acknowledged_by.username|default:"—" }}</p>
+                <p class="mb-1"><strong>At:</strong> {{ cve.acknowledged_at|date:"d M Y H:i"|default:"—" }}</p>
+                {% if cve.acknowledgement_note %}
+                <p class="mb-0"><strong>Note:</strong> {{ cve.acknowledgement_note }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Acknowledge modal -->
+<div class="modal fade" id="ackModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Acknowledge {{ cve.cve_id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Note (optional)</label>
+                <textarea class="form-control" id="ackNote" rows="3" placeholder="Reason, mitigation applied…"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmAckBtn">Acknowledge</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCsrf() {
+    return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrftoken='))?.split('=')[1]||'';
+}
+const CVE_ID = '{{ cve.id }}';
+
+document.getElementById('confirmAckBtn')?.addEventListener('click', function() {
+    const note = document.getElementById('ackNote').value;
+    fetch(`/cves/api/${CVE_ID}/acknowledge/`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+        body: JSON.stringify({note})
+    }).then(() => location.reload());
+});
+
+document.getElementById('unackBtn')?.addEventListener('click', function() {
+    if (!confirm('Unacknowledge this CVE?')) return;
+    fetch(`/cves/api/${CVE_ID}/unacknowledge/`, {
+        method:'POST', headers:{'X-CSRFToken':getCsrf()}
+    }).then(() => location.reload());
+});
+</script>
+{% endblock %}
+    <span class="badge bg-{{ cve.severity_color }} ms-1">{{ cve.severity|title }}</span>
+    {% if cve.acknowledged %}
+        <span class="badge bg-success ms-1">Acknowledged</span>
+    {% else %}
+        <span class="badge bg-warning text-dark ms-1">Open</span>
+    {% endif %}
+    {% if user.is_staff %}
+    <div class="ms-auto">
+        {% if cve.acknowledged %}
+        <button class="btn btn-sm btn-outline-secondary" id="unackBtn">
+            <i class="fas fa-undo me-1"></i>Unacknowledge
+        </button>
+        {% else %}
+        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#ackModal">
+            <i class="fas fa-check me-1"></i>Acknowledge
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header">Description</div>
+            <div class="card-body">
+                <p class="mb-0">{{ cve.description|default:"No description available." }}</p>
+            </div>
+        </div>
+
+        {% if cve.affected_packages %}
+        <div class="card mb-3">
+            <div class="card-header">Affected Packages</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for pkg in cve.affected_packages %}
+                    <li class="list-group-item">{{ pkg }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if cve.affected_agents.exists %}
+        <div class="card mb-3">
+            <div class="card-header">Affected Agents</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for agent in cve.affected_agents.all %}
+                    <li class="list-group-item">
+                        <a href="{% url 'agent-detail' agent.id %}">{{ agent.hostname }}</a>
+                        <small class="text-muted ms-2">{{ agent.ip_address }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-12 col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">Details</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5">CVSS3 Score</dt>
+                    <dd class="col-7">{{ cve.cvss3_score|default:"—" }}</dd>
+                    <dt class="col-5">CVSS3 Vector</dt>
+                    <dd class="col-7 text-break">{{ cve.cvss3_vector|default:"—" }}</dd>
+                    <dt class="col-5">CWE</dt>
+                    <dd class="col-7">{{ cve.cwe|default:"—" }}</dd>
+                    <dt class="col-5">Public Date</dt>
+                    <dd class="col-7">{{ cve.public_date|date:"d M Y"|default:"—" }}</dd>
+                    <dt class="col-5">Source</dt>
+                    <dd class="col-7">{{ cve.source.name|default:"—" }}</dd>
+                    {% if cve.bugzilla %}
+                    <dt class="col-5">Bugzilla</dt>
+                    <dd class="col-7"><a href="https://bugzilla.redhat.com/{{ cve.bugzilla }}" target="_blank">{{ cve.bugzilla }}</a></dd>
+                    {% endif %}
+                    {% if cve.resource_url %}
+                    <dt class="col-5">Resource</dt>
+                    <dd class="col-7"><a href="{{ cve.resource_url }}" target="_blank">Red Hat Advisory</a></dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        {% if cve.acknowledged %}
+        <div class="card border-success mb-3">
+            <div class="card-header text-success">Acknowledgement</div>
+            <div class="card-body small">
+                <p class="mb-1"><strong>By:</strong> {{ cve.acknowledged_by.username|default:"—" }}</p>
+                <p class="mb-1"><strong>At:</strong> {{ cve.acknowledged_at|date:"d M Y H:i"|default:"—" }}</p>
+                {% if cve.acknowledgement_note %}
+                <p class="mb-0"><strong>Note:</strong> {{ cve.acknowledgement_note }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Acknowledge modal -->
+<div class="modal fade" id="ackModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Acknowledge {{ cve.cve_id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Note (optional)</label>
+                <textarea class="form-control" id="ackNote" rows="3" placeholder="Reason, mitigation applied…"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmAckBtn">Acknowledge</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCsrf() {
+    return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrftoken='))?.split('=')[1]||'';
+}
+const CVE_ID = '{{ cve.id }}';
+
+document.getElementById('confirmAckBtn')?.addEventListener('click', function() {
+    const note = document.getElementById('ackNote').value;
+    fetch(`/cves/api/${CVE_ID}/acknowledge/`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+        body: JSON.stringify({note})
+    }).then(() => location.reload());
+});
+
+document.getElementById('unackBtn')?.addEventListener('click', function() {
+    if (!confirm('Unacknowledge this CVE?')) return;
+    fetch(`/cves/api/${CVE_ID}/unacknowledge/`, {
+        method:'POST', headers:{'X-CSRFToken':getCsrf()}
+    }).then(() => location.reload());
+});
+</script>
+{% endblock %}

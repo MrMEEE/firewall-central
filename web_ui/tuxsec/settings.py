@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'modules',
     'modules.firewalld',
     'settings',
+    'cves',
 ]
 
 MIDDLEWARE = [
@@ -66,15 +67,14 @@ WSGI_APPLICATION = 'tuxsec.wsgi.application'
 ASGI_APPLICATION = 'tuxsec.asgi.application'
 
 # Database
-# Switched from SQLite to MariaDB for better concurrent access support
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'tuxsec',
-        'USER': 'tuxsec',
-        'PASSWORD': 'tuxsec_password',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': os.environ.get('DB_NAME', 'tuxsec'),
+        'USER': os.environ.get('DB_USER', 'tuxsec'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'tuxsec_password'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
         'OPTIONS': {
             'charset': 'utf8mb4',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -82,15 +82,13 @@ DATABASES = {
     }
 }
 
-# Old SQLite configuration (kept for reference)
+# SQLite fallback (for local dev without MariaDB)
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
 #         'NAME': BASE_DIR / 'db.sqlite3',
-#         'OPTIONS': {
-#             'timeout': 20,  # Wait up to 20 seconds for database lock to be released
-#         },
-#         'CONN_MAX_AGE': 0,  # Close database connections after each request
+#         'OPTIONS': {'timeout': 20},
+#         'CONN_MAX_AGE': 0,
 #     }
 # }
 

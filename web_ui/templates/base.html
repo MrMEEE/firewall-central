@@ -4,134 +4,316 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}TuxSec{% endblock %}</title>
-    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="{% load static %}{% static 'css/style.css' %}" rel="stylesheet">
-    
+    {% load static %}
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 240px;
+            --sidebar-collapsed-width: 60px;
+            --sidebar-bg: #1a1d23;
+            --sidebar-hover: #2a2d35;
+            --sidebar-active: #0d6efd;
+            --sidebar-text: #adb5bd;
+            --sidebar-text-active: #fff;
+            --topbar-height: 56px;
+        }
+
+        body {
+            background: #f0f2f5;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* ── Topbar ── */
+        .topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: var(--topbar-height);
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,.12);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            z-index: 1030;
+            gap: 1rem;
+        }
+        .topbar .brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1a1d23;
+            text-decoration: none;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+        .topbar .brand i { color: #0d6efd; }
+        .topbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed;
+            top: var(--topbar-height);
+            left: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            overflow-x: hidden;
+            overflow-y: auto;
+            transition: width .25s ease;
+            z-index: 1020;
+            scrollbar-width: thin;
+            scrollbar-color: #444 transparent;
+        }
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+        .sidebar-nav {
+            list-style: none;
+            margin: 0;
+            padding: .5rem 0;
+        }
+        .sidebar-section {
+            padding: .5rem 1rem .25rem;
+            font-size: .65rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #5c6370;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .sidebar.collapsed .sidebar-section { opacity: 0; }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .6rem 1rem;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: .875rem;
+            white-space: nowrap;
+            transition: background .15s, color .15s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-nav a i {
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+            font-size: .95rem;
+        }
+        .sidebar-nav a .nav-label {
+            overflow: hidden;
+            opacity: 1;
+            transition: opacity .2s;
+        }
+        .sidebar.collapsed .sidebar-nav a .nav-label { opacity: 0; width: 0; }
+        .sidebar-nav a:hover {
+            background: var(--sidebar-hover);
+            color: var(--sidebar-text-active);
+        }
+        .sidebar-nav a.active {
+            background: rgba(13,110,253,.15);
+            color: var(--sidebar-text-active);
+            border-left-color: var(--sidebar-active);
+        }
+
+        /* ── Main content ── */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--topbar-height);
+            padding: 1.5rem;
+            transition: margin-left .25s ease;
+            min-height: calc(100vh - var(--topbar-height));
+        }
+        .main-wrapper.collapsed { margin-left: var(--sidebar-collapsed-width); }
+
+        /* ── Sidebar toggle btn ── */
+        #sidebarToggle {
+            background: none;
+            border: none;
+            color: #495057;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: .25rem .5rem;
+        }
+        #sidebarToggle:hover { color: #0d6efd; }
+
+        /* ── Tooltip for collapsed icons ── */
+        .sidebar.collapsed .sidebar-nav a {
+            position: relative;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .sidebar { width: 0; }
+            .sidebar.mobile-open { width: var(--sidebar-width); }
+            .main-wrapper { margin-left: 0; }
+            .main-wrapper.collapsed { margin-left: 0; }
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'dashboard-home' %}">
-                <i class="fas fa-shield-alt"></i> TuxSec
+
+<!-- ══ Topbar ══ -->
+<header class="topbar">
+    <button id="sidebarToggle" title="Toggle sidebar"><i class="fas fa-bars"></i></button>
+    <a class="brand" href="{% url 'dashboard-home' %}">
+        <i class="fas fa-shield-alt"></i> TuxSec
+    </a>
+    <div class="topbar-right">
+        {% if user.is_authenticated %}
+            <span class="text-muted small d-none d-md-inline">
+                <i class="fas fa-user me-1"></i>{{ user.username }}
+                {% if user.is_staff %}<span class="badge bg-primary ms-1">Admin</span>{% endif %}
+            </span>
+            <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-sign-out-alt"></i> <span class="d-none d-md-inline">Logout</span>
             </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'dashboard-home' %}">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'whiteboard' %}">
-                            <i class="fas fa-project-diagram"></i> Whiteboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'agent-list' %}">
-                            <i class="fas fa-server"></i> Agents
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'templates-page' %}">
-                            <i class="fas fa-file-code"></i> Templates
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'audit-log-list' %}">
-                            <i class="fas fa-clipboard-list"></i> Audit Logs
-                        </a>
-                    </li>
-                    
-                    <!-- Dynamic Module Menu Items -->
-                    {% for module in enabled_modules %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'settings:module_detail' module.name %}">
-                            <i class="fas {{ module.icon }}"></i> {{ module.display_name }}
-                        </a>
-                    </li>
-                    {% endfor %}
-                    
-                    {% if user.is_staff %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-cog"></i> Settings
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'settings:home' %}">
-                                <i class="fas fa-home me-2"></i>Settings Home
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'settings:module_list' %}">
-                                <i class="fas fa-puzzle-piece me-2"></i>Modules
-                            </a></li>
-                            <li><a class="dropdown-item" href="{% url 'settings:user_list' %}">
-                                <i class="fas fa-users me-2"></i>Users
-                            </a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                </ul>
-                
-                <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user"></i> {{ user.username }}
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'logout' %}">
-                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
-                                </a></li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">
-                                <i class="fas fa-sign-in-alt me-1"></i>Login
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
-    
-    <!-- Main Content -->
-    <main class="container-fluid mt-4">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
         {% endif %}
-        
-        {% block content %}{% endblock %}
-    </main>
-    
-    <!-- Footer -->
-    <footer class="bg-dark text-light text-center py-3 mt-5">
-        <p>&copy; 2025 TuxSec Management System</p>
-    </footer>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    {% block extra_js %}{% endblock %}
+    </div>
+</header>
+
+<!-- ══ Sidebar ══ -->
+<nav class="sidebar" id="sidebar">
+    <ul class="sidebar-nav">
+        <li class="sidebar-section">Main</li>
+        <li>
+            <a href="{% url 'dashboard-home' %}" {% if request.resolver_match.url_name == 'home' and request.resolver_match.app_name == 'dashboard' %}class="active"{% endif %}>
+                <i class="fas fa-tachometer-alt"></i>
+                <span class="nav-label">Dashboard</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'agent-list' %}" {% if 'agent' in request.resolver_match.url_name %}class="active"{% endif %}>
+                <i class="fas fa-server"></i>
+                <span class="nav-label">Agents</span>
+            </a>
+        </li>
+
+        <li class="sidebar-section">Security</li>
+        <li>
+            <a href="{% url 'cves:dashboard' %}" {% if request.resolver_match.app_name == 'cves' %}class="active"{% endif %}>
+                <i class="fas fa-bug"></i>
+                <span class="nav-label">CVEs</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'audit-log-list' %}" {% if 'audit' in request.resolver_match.url_name %}class="active"{% endif %}>
+                <i class="fas fa-clipboard-list"></i>
+                <span class="nav-label">Audit Logs</span>
+            </a>
+        </li>
+
+        <li class="sidebar-section">Tools</li>
+        <li>
+            <a href="{% url 'whiteboard' %}" {% if 'whiteboard' in request.resolver_match.url_name %}class="active"{% endif %}>
+                <i class="fas fa-project-diagram"></i>
+                <span class="nav-label">Whiteboard</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'templates-page' %}" {% if 'template' in request.resolver_match.url_name %}class="active"{% endif %}>
+                <i class="fas fa-file-code"></i>
+                <span class="nav-label">Templates</span>
+            </a>
+        </li>
+
+        {% for module in enabled_modules %}
+        <li>
+            <a href="{% url 'settings:module_detail' module.name %}">
+                <i class="fas {{ module.icon }}"></i>
+                <span class="nav-label">{{ module.display_name }}</span>
+            </a>
+        </li>
+        {% endfor %}
+
+        {% if user.is_staff %}
+        <li class="sidebar-section">Admin</li>
+        <li>
+            <a href="{% url 'settings:home' %}" {% if request.resolver_match.app_name == 'settings' %}class="active"{% endif %}>
+                <i class="fas fa-cog"></i>
+                <span class="nav-label">Settings</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'settings:module_list' %}">
+                <i class="fas fa-puzzle-piece"></i>
+                <span class="nav-label">Modules</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'settings:user_list' %}">
+                <i class="fas fa-users"></i>
+                <span class="nav-label">Users</span>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+
+<!-- ══ Main Content ══ -->
+<main class="main-wrapper" id="mainWrapper">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+(function () {
+    const sidebar = document.getElementById('sidebar');
+    const wrapper = document.getElementById('mainWrapper');
+    const STORAGE_KEY = 'tuxsec_sidebar_collapsed';
+
+    function isCollapsed() {
+        return localStorage.getItem(STORAGE_KEY) === '1';
+    }
+
+    function apply(collapsed) {
+        sidebar.classList.toggle('collapsed', collapsed);
+        wrapper.classList.toggle('collapsed', collapsed);
+        localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+    }
+
+    // Restore state
+    apply(isCollapsed());
+
+    document.getElementById('sidebarToggle').addEventListener('click', function () {
+        apply(!isCollapsed());
+    });
+})();
+</script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,765 @@
+{% extends "base.html" %}
+{% block title %}CVE Dashboard – TuxSec{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --col-full: 12;
+    --col-half: 6;
+    --col-quarter: 3;
+}
+.widget-col { transition: width .2s; }
+.widget-col.size-full  { width: 100% !important; flex: 0 0 100%; max-width: 100%; }
+.widget-col.size-half  { width: 50% !important; flex: 0 0 50%; max-width: 50%; }
+.widget-col.size-quarter { width: 25% !important; flex: 0 0 25%; max-width: 25%; }
+@media (max-width: 991.98px) {
+    .widget-col.size-quarter { width: 50% !important; flex: 0 0 50%; max-width: 50%; }
+}
+@media (max-width: 575.98px) {
+    .widget-col { width: 100% !important; flex: 0 0 100%; max-width: 100%; }
+}
+.widget-card { position: relative; }
+.widget-toolbar { display: none; gap: .25rem; }
+.widget-col:hover .widget-toolbar, .widget-col.dragging .widget-toolbar { display: flex; }
+.drag-handle { cursor: grab; color: #adb5bd; padding: 0 .4rem; }
+.drag-handle:active { cursor: grabbing; }
+.size-btn { font-size: .7rem; padding: .15rem .35rem; }
+.size-btn.active { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
+.severity-critical { color: #dc3545; font-weight: 700; }
+.severity-important { color: #fd7e14; font-weight: 600; }
+.severity-moderate { color: #0dcaf0; }
+.severity-low { color: #6c757d; }
+.stat-card { border-left: 4px solid; }
+.stat-card.critical { border-color: #dc3545; }
+.stat-card.important { border-color: #fd7e14; }
+.stat-card.total { border-color: #0d6efd; }
+.stat-card.unacked { border-color: #ffc107; }
+#widgetsGrid { min-height: 80px; }
+.sortable-ghost { opacity: .35; background: #e9ecef; border: 2px dashed #6c757d; }
+.sortable-chosen { box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+    <h4 class="mb-0"><i class="fas fa-bug me-2 text-danger"></i>CVE Dashboard</h4>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        {% if user.is_staff %}
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-sync-alt me-1"></i>Sync Source
+            </button>
+            <ul class="dropdown-menu">
+                {% for source in sources %}
+                <li>
+                    <a class="dropdown-item sync-trigger" href="#"
+                       data-source-id="{{ source.id }}"
+                       data-source-name="{{ source.name }}"
+                       data-default-days="{{ source.default_days_back }}">
+                        {{ source.name }}
+                        {% if source.last_sync %}
+                        <small class="text-muted d-block">Last: {{ source.last_sync|date:"d M H:i" }}</small>
+                        {% endif %}
+                    </a>
+                </li>
+                {% empty %}
+                <li><span class="dropdown-item text-muted">No sources configured</span></li>
+                {% endfor %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'cves:sources' %}">
+                    <i class="fas fa-cog me-1"></i>Manage Sources</a></li>
+            </ul>
+        </div>
+        {% endif %}
+        <a href="{% url 'cves:cve_list' %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-list me-1"></i>Full CVE List
+        </a>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addWidgetModal">
+            <i class="fas fa-plus me-1"></i>Add Widget
+        </button>
+    </div>
+</div>
+
+<!-- Summary stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card total h-100">
+            <div class="card-body">
+                <div class="text-muted small">Total CVEs</div>
+                <div class="fs-3 fw-bold">{{ stats.total }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card unacked h-100">
+            <div class="card-body">
+                <div class="text-muted small">Unacknowledged</div>
+                <div class="fs-3 fw-bold text-warning">{{ stats.unacknowledged }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card critical h-100">
+            <div class="card-body">
+                <div class="text-muted small">Critical (Unacked)</div>
+                <div class="fs-3 fw-bold text-danger">{{ stats.critical }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card important h-100">
+            <div class="card-body">
+                <div class="text-muted small">Important (Unacked)</div>
+                <div class="fs-3 fw-bold" style="color:#fd7e14">{{ stats.important }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Widgets grid -->
+<div class="row g-3" id="widgetsGrid">
+    {% for widget in widgets %}
+    <div class="widget-col size-{{ widget.size }}" data-widget-id="{{ widget.id }}" data-size="{{ widget.size }}">
+        <div class="card widget-card h-100">
+            <div class="card-header d-flex align-items-center gap-1 py-2">
+                <span class="drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
+                <span class="me-auto text-truncate" style="max-width:40%">{{ widget.title }}</span>
+                <div class="widget-toolbar align-items-center">
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Widget size">
+                        <button class="btn btn-outline-secondary size-btn {% if widget.size == 'quarter' %}active{% endif %}"
+                                data-size="quarter" title="Quarter width">¼</button>
+                        <button class="btn btn-outline-secondary size-btn {% if widget.size == 'half' %}active{% endif %}"
+                                data-size="half" title="Half width">½</button>
+                        <button class="btn btn-outline-secondary size-btn {% if widget.size == 'full' %}active{% endif %}"
+                                data-size="full" title="Full width">█</button>
+                    </div>
+                    <button class="btn btn-sm btn-link text-danger p-0 ms-1 widget-remove"
+                            data-widget-id="{{ widget.id }}" title="Remove widget">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body widget-body p-2" data-widget-id="{{ widget.id }}" data-widget-type="{{ widget.widget_type }}">
+                <div class="text-center py-4 text-muted widget-loading">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12" id="emptyState">
+        <div class="card text-center py-5">
+            <div class="card-body text-muted">
+                <i class="fas fa-plus-circle fa-3x mb-3"></i>
+                <p>No widgets yet. Click <strong>Add Widget</strong> to get started.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add Widget Modal -->
+<div class="modal fade" id="addWidgetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Add Dashboard Widget</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Widget Type</label>
+                    <select class="form-select" id="widgetType">
+                        {% for value, label in widget_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-control" id="widgetTitle" placeholder="Widget title">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Width</label>
+                    <select class="form-select" id="widgetSize">
+                        <option value="half" selected>Half (50%)</option>
+                        <option value="full">Full (100%)</option>
+                        <option value="quarter">Quarter (25%)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Filter: Severity</label>
+                    <select class="form-select" id="filterSeverity">
+                        <option value="">All severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="important">Important</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Filter: Acknowledged</label>
+                    <select class="form-select" id="filterAcked">
+                        <option value="">All</option>
+                        <option value="false">Unacknowledged only</option>
+                        <option value="true">Acknowledged only</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveWidgetBtn">Add Widget</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Source Modal -->
+<div class="modal fade" id="syncModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-sync-alt me-2"></i>Sync <span id="syncSourceName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Fetch CVEs from the last</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="syncDaysBack" min="0" value="365" step="1">
+                    <span class="input-group-text">days</span>
+                </div>
+                <div class="form-text">Set to 0 to fetch all CVEs with no date filter.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSyncBtn">
+                    <i class="fas fa-sync-alt me-1"></i>Sync Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+<script>
+const SEVERITY_COLORS = {
+    critical: '#dc3545', important: '#fd7e14', moderate: '#0dcaf0',
+    low: '#6c757d', none: '#dee2e6', unknown: '#adb5bd'
+};
+
+function getCsrf() {
+    return document.cookie.split(';').map(c => c.trim())
+        .find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Widget rendering ────────────────────────────────────────────────────────
+function renderWidget(body, data) {
+    const type = data.type;
+    body.innerHTML = '';
+
+    if (type === 'unacked_count') {
+        body.innerHTML = `<div class="text-center py-3">
+            <div class="display-4 fw-bold text-warning">${data.data}</div>
+            <div class="text-muted">Unacknowledged CVEs</div></div>`;
+
+    } else if (type === 'severity_chart') {
+        const canvas = document.createElement('canvas');
+        canvas.height = 200;
+        body.appendChild(canvas);
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: data.data.map(d => d.severity),
+                datasets: [{ data: data.data.map(d => d.count),
+                    backgroundColor: data.data.map(d => SEVERITY_COLORS[d.severity] || '#adb5bd') }]
+            },
+            options: { plugins: { legend: { position: 'right' } }, responsive: true }
+        });
+
+    } else if (type === 'timeline_chart') {
+        const canvas = document.createElement('canvas');
+        canvas.height = 200;
+        body.appendChild(canvas);
+        new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: data.data.map(d => d.month || 'Unknown'),
+                datasets: [{ label: 'CVEs', data: data.data.map(d => d.count),
+                    backgroundColor: '#0d6efd88', borderColor: '#0d6efd', borderWidth: 1 }]
+            },
+            options: { scales: { y: { beginAtZero: true } }, responsive: true }
+        });
+
+    } else if (type === 'top_packages') {
+        if (!data.data.length) { body.innerHTML = '<p class="text-muted text-center py-3">No data</p>'; return; }
+        const ul = document.createElement('ul');
+        ul.className = 'list-group list-group-flush';
+        data.data.forEach(d => {
+            ul.insertAdjacentHTML('beforeend',
+                `<li class="list-group-item d-flex justify-content-between align-items-center px-2 py-1">
+                    <span class="text-truncate me-2">${escHtml(d.package)}</span>
+                    <span class="badge bg-primary rounded-pill">${d.count}</span></li>`);
+        });
+        body.appendChild(ul);
+
+    } else if (type === 'cve_table') {
+        if (!data.data.length) { body.innerHTML = '<p class="text-muted text-center py-3">No CVEs found</p>'; return; }
+        const table = document.createElement('table');
+        table.className = 'table table-sm table-hover mb-0';
+        table.innerHTML = `<thead class="table-light"><tr><th>CVE</th><th>Severity</th><th>Score</th><th>Date</th><th></th></tr></thead>`;
+        const tbody = document.createElement('tbody');
+        data.data.forEach(c => {
+            const date = c.public_date ? c.public_date.substring(0,10) : '—';
+            const acked = c.acknowledged ? '<span class="badge bg-success">Acked</span>' : '';
+            tbody.insertAdjacentHTML('beforeend',
+                `<tr>
+                    <td><a href="/cves/detail/${c.id}/" class="text-decoration-none fw-semibold">${escHtml(c.cve_id)}</a></td>
+                    <td><span class="severity-${c.severity}">${c.severity}</span></td>
+                    <td>${c.cvss3_score ?? '—'}</td>
+                    <td class="text-muted small">${date}</td>
+                    <td>${acked}</td>
+                </tr>`);
+        });
+        table.appendChild(tbody);
+        const wrapper = document.createElement('div');
+        wrapper.style.maxHeight = '320px';
+        wrapper.style.overflowY = 'auto';
+        wrapper.appendChild(table);
+        body.appendChild(wrapper);
+    }
+}
+
+// Load all widgets
+document.querySelectorAll('.widget-body').forEach(body => {
+    const wid = body.dataset.widgetId;
+    fetch(`/cves/api/widget/${wid}/`)
+        .then(r => r.json())
+        .then(data => renderWidget(body, data))
+        .catch(() => { body.innerHTML = `<div class="alert alert-danger m-2">Failed to load widget</div>`; });
+});
+
+// ── Layout persistence ──────────────────────────────────────────────────────
+function saveLayout() {
+    const widgets = [...document.querySelectorAll('#widgetsGrid .widget-col')].map((el, i) => ({
+        id: el.dataset.widgetId,
+        position: i,
+        size: el.dataset.size,
+    }));
+    fetch('/cves/api/widget/layout/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+        body: JSON.stringify({ widgets })
+    });
+}
+
+// ── Drag & drop with SortableJS ─────────────────────────────────────────────
+const grid = document.getElementById('widgetsGrid');
+if (grid) {
+    Sortable.create(grid, {
+        animation: 150,
+        handle: '.drag-handle',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: saveLayout,
+    });
+}
+
+// ── Size buttons ────────────────────────────────────────────────────────────
+document.querySelectorAll('.size-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const col = this.closest('.widget-col');
+        const newSize = this.dataset.size;
+        col.classList.remove('size-full', 'size-half', 'size-quarter');
+        col.classList.add(`size-${newSize}`);
+        col.dataset.size = newSize;
+        // Update active state in this widget's toolbar only
+        col.querySelectorAll('.size-btn').forEach(b => b.classList.toggle('active', b.dataset.size === newSize));
+        saveLayout();
+    });
+});
+
+// ── Remove widget ───────────────────────────────────────────────────────────
+document.querySelectorAll('.widget-remove').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const wid = this.dataset.widgetId;
+        if (!confirm('Remove this widget?')) return;
+        fetch(`/cves/api/widget/${wid}/remove/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrf() }
+        }).then(() => location.reload());
+    });
+});
+
+// ── Add widget ──────────────────────────────────────────────────────────────
+document.getElementById('saveWidgetBtn')?.addEventListener('click', function() {
+    const type = document.getElementById('widgetType').value;
+    const title = document.getElementById('widgetTitle').value || type.replace(/_/g,' ');
+    const size = document.getElementById('widgetSize').value;
+    const severity = document.getElementById('filterSeverity').value;
+    const acked = document.getElementById('filterAcked').value;
+    const config = {};
+    if (severity) config.severity = severity;
+    if (acked === 'true') config.acknowledged = true;
+    if (acked === 'false') config.acknowledged = false;
+
+    fetch('/cves/api/widget/add/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+        body: JSON.stringify({ widget_type: type, title, size, config })
+    }).then(() => {
+        bootstrap.Modal.getInstance(document.getElementById('addWidgetModal')).hide();
+        location.reload();
+    });
+});
+
+// ── Sync source ─────────────────────────────────────────────────────────────
+let activeSyncSourceId = null;
+
+document.querySelectorAll('.sync-trigger').forEach(el => {
+    el.addEventListener('click', function(e) {
+        e.preventDefault();
+        activeSyncSourceId = this.dataset.sourceId;
+        document.getElementById('syncSourceName').textContent = this.dataset.sourceName;
+        document.getElementById('syncDaysBack').value = this.dataset.defaultDays || 365;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('syncModal')).show();
+    });
+});
+
+document.getElementById('confirmSyncBtn')?.addEventListener('click', function() {
+    if (!activeSyncSourceId) return;
+    const daysBack = parseInt(document.getElementById('syncDaysBack').value, 10);
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Syncing…';
+    bootstrap.Modal.getInstance(document.getElementById('syncModal')).hide();
+
+    fetch(`/cves/api/sync/${activeSyncSourceId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+        body: JSON.stringify({ days_back: daysBack })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Sync Now';
+        if (data.error) alert('Sync error: ' + data.error);
+        else { alert(`Sync complete: ${data.imported} CVEs imported/updated`); location.reload(); }
+    });
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3 gap-2">
+    <h4 class="mb-0"><i class="fas fa-bug me-2 text-danger"></i>CVE Dashboard</h4>
+    <div class="ms-auto d-flex gap-2">
+        {% if user.is_staff %}
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-sync-alt me-1"></i>Sync Source
+            </button>
+            <ul class="dropdown-menu">
+                {% for source in sources %}
+                <li>
+                    <a class="dropdown-item sync-btn" href="#" data-source-id="{{ source.id }}">
+                        {{ source.name }}
+                        {% if source.last_sync %}
+                        <small class="text-muted d-block">Last: {{ source.last_sync|date:"d M H:i" }}</small>
+                        {% endif %}
+                    </a>
+                </li>
+                {% empty %}
+                <li><span class="dropdown-item text-muted">No sources configured</span></li>
+                {% endfor %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'cves:sources' %}"><i class="fas fa-cog me-1"></i>Manage Sources</a></li>
+            </ul>
+        </div>
+        {% endif %}
+        <a href="{% url 'cves:cve_list' %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-list me-1"></i>Full CVE List
+        </a>
+        {% if user.is_staff %}
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addWidgetModal">
+            <i class="fas fa-plus me-1"></i>Add Widget
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card total h-100">
+            <div class="card-body">
+                <div class="text-muted small">Total CVEs</div>
+                <div class="fs-3 fw-bold">{{ stats.total }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card unacked h-100">
+            <div class="card-body">
+                <div class="text-muted small">Unacknowledged</div>
+                <div class="fs-3 fw-bold text-warning">{{ stats.unacknowledged }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card critical h-100">
+            <div class="card-body">
+                <div class="text-muted small">Critical (Unacked)</div>
+                <div class="fs-3 fw-bold text-danger">{{ stats.critical }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card important h-100">
+            <div class="card-body">
+                <div class="text-muted small">Important (Unacked)</div>
+                <div class="fs-3 fw-bold" style="color:#fd7e14">{{ stats.important }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Widgets grid -->
+<div class="row g-3" id="widgetsGrid">
+    {% for widget in widgets %}
+    <div class="col-12 col-lg-6" data-widget-id="{{ widget.id }}">
+        <div class="card widget-card h-100">
+            <div class="card-header d-flex align-items-center">
+                <span><i class="fas fa-grip-vertical me-2 text-muted"></i>{{ widget.title }}</span>
+                {% if user.is_staff %}
+                <button class="btn btn-sm btn-link text-danger widget-remove ms-auto p-0"
+                        data-widget-id="{{ widget.id }}" title="Remove widget">
+                    <i class="fas fa-times"></i>
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body widget-body" data-widget-id="{{ widget.id }}" data-widget-type="{{ widget.widget_type }}">
+                <div class="text-center py-4 text-muted widget-loading">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card border-dashed text-center py-5">
+            <div class="card-body text-muted">
+                <i class="fas fa-plus-circle fa-3x mb-3"></i>
+                <p>No widgets yet. Click <strong>Add Widget</strong> to get started.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add Widget Modal -->
+<div class="modal fade" id="addWidgetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Add Dashboard Widget</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Widget Type</label>
+                    <select class="form-select" id="widgetType">
+                        {% for value, label in widget_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-control" id="widgetTitle" placeholder="Widget title">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Filter: Severity</label>
+                    <select class="form-select" id="filterSeverity">
+                        <option value="">All severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="important">Important</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Filter: Acknowledged</label>
+                    <select class="form-select" id="filterAcked">
+                        <option value="">All</option>
+                        <option value="false">Unacknowledged only</option>
+                        <option value="true">Acknowledged only</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveWidgetBtn">Add Widget</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+const SEVERITY_COLORS = {
+    critical: '#dc3545', important: '#fd7e14', moderate: '#0dcaf0',
+    low: '#6c757d', none: '#dee2e6', unknown: '#adb5bd'
+};
+
+function getCsrf() {
+    return document.cookie.split(';').map(c => c.trim())
+        .find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+function renderWidget(body, data) {
+    const type = data.type;
+    body.innerHTML = '';
+
+    if (type === 'unacked_count') {
+        body.innerHTML = `<div class="text-center py-3">
+            <div class="display-4 fw-bold text-warning">${data.data}</div>
+            <div class="text-muted">Unacknowledged CVEs</div></div>`;
+
+    } else if (type === 'severity_chart') {
+        const canvas = document.createElement('canvas');
+        canvas.height = 200;
+        body.appendChild(canvas);
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: data.data.map(d => d.severity),
+                datasets: [{ data: data.data.map(d => d.count),
+                    backgroundColor: data.data.map(d => SEVERITY_COLORS[d.severity] || '#adb5bd') }]
+            },
+            options: { plugins: { legend: { position: 'right' } }, responsive: true }
+        });
+
+    } else if (type === 'timeline_chart') {
+        const canvas = document.createElement('canvas');
+        canvas.height = 200;
+        body.appendChild(canvas);
+        new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: data.data.map(d => d.month || 'Unknown'),
+                datasets: [{ label: 'CVEs', data: data.data.map(d => d.count),
+                    backgroundColor: '#0d6efd88', borderColor: '#0d6efd', borderWidth: 1 }]
+            },
+            options: { scales: { y: { beginAtZero: true } }, responsive: true }
+        });
+
+    } else if (type === 'top_packages') {
+        if (!data.data.length) { body.innerHTML = '<p class="text-muted text-center py-3">No data</p>'; return; }
+        const ul = document.createElement('ul');
+        ul.className = 'list-group list-group-flush';
+        data.data.forEach(d => {
+            ul.insertAdjacentHTML('beforeend',
+                `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-truncate" style="max-width:80%">${escHtml(d.package)}</span>
+                    <span class="badge bg-primary">${d.count}</span></li>`);
+        });
+        body.appendChild(ul);
+
+    } else if (type === 'cve_table') {
+        if (!data.data.length) { body.innerHTML = '<p class="text-muted text-center py-3">No CVEs found</p>'; return; }
+        const table = document.createElement('table');
+        table.className = 'table table-sm table-hover mb-0';
+        table.innerHTML = `<thead><tr><th>CVE</th><th>Severity</th><th>Score</th><th>Date</th><th></th></tr></thead>`;
+        const tbody = document.createElement('tbody');
+        data.data.forEach(c => {
+            const date = c.public_date ? c.public_date.substring(0,10) : '—';
+            const acked = c.acknowledged ? '<span class="badge bg-success">Acked</span>' : '';
+            tbody.insertAdjacentHTML('beforeend',
+                `<tr>
+                    <td><a href="/cves/detail/${c.id}/" class="text-decoration-none">${escHtml(c.cve_id)}</a></td>
+                    <td><span class="severity-${c.severity}">${c.severity}</span></td>
+                    <td>${c.cvss3_score ?? '—'}</td>
+                    <td>${date}</td>
+                    <td>${acked}</td>
+                </tr>`);
+        });
+        table.appendChild(tbody);
+        const wrapper = document.createElement('div');
+        wrapper.style.maxHeight = '300px';
+        wrapper.style.overflowY = 'auto';
+        wrapper.appendChild(table);
+        body.appendChild(wrapper);
+    }
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Load all widgets
+document.querySelectorAll('.widget-body').forEach(body => {
+    const wid = body.dataset.widgetId;
+    fetch(`/cves/api/widget/${wid}/`)
+        .then(r => r.json())
+        .then(data => renderWidget(body, data))
+        .catch(e => { body.innerHTML = `<div class="alert alert-danger">Failed to load widget</div>`; });
+});
+
+// Remove widget
+document.querySelectorAll('.widget-remove').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const wid = this.dataset.widgetId;
+        if (!confirm('Remove this widget?')) return;
+        fetch(`/cves/api/widget/${wid}/remove/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrf() }
+        }).then(() => location.reload());
+    });
+});
+
+// Add widget
+document.getElementById('saveWidgetBtn')?.addEventListener('click', function() {
+    const type = document.getElementById('widgetType').value;
+    const title = document.getElementById('widgetTitle').value || type.replace('_',' ');
+    const severity = document.getElementById('filterSeverity').value;
+    const acked = document.getElementById('filterAcked').value;
+    const config = {};
+    if (severity) config.severity = severity;
+    if (acked === 'true') config.acknowledged = true;
+    if (acked === 'false') config.acknowledged = false;
+
+    fetch('/cves/api/widget/add/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+        body: JSON.stringify({ widget_type: type, title, config })
+    }).then(() => { bootstrap.Modal.getInstance(document.getElementById('addWidgetModal')).hide(); location.reload(); });
+});
+
+// Sync source
+document.querySelectorAll('.sync-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const sid = this.dataset.sourceId;
+        const orig = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Syncing…';
+        fetch(`/cves/api/sync/${sid}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrf() }
+        }).then(r => r.json()).then(data => {
+            this.innerHTML = orig;
+            if (data.error) alert('Sync error: ' + data.error);
+            else { alert(`Sync complete: ${data.imported} CVEs imported/updated`); location.reload(); }
+        });
+    });
+});
+</script>
+{% endblock %}

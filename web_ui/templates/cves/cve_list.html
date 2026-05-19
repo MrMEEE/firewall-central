@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}CVE List – TuxSec{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-bug me-2 text-danger"></i>CVE List</h4>
+    <a href="{% url 'cves:dashboard' %}" class="btn btn-sm btn-outline-secondary ms-auto">
+        <i class="fas fa-th-large me-1"></i>Dashboard
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label small mb-1">Search</label>
+                <input type="text" name="q" class="form-control form-control-sm"
+                       placeholder="CVE ID, description…" value="{{ filters.q }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Severity</label>
+                <select name="severity" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    {% for val, label in severity_choices %}
+                    <option value="{{ val }}" {% if filters.severity == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Source</label>
+                <select name="source" class="form-select form-select-sm">
+                    <option value="">All sources</option>
+                    {% for src in sources %}
+                    <option value="{{ src.id }}" {% if filters.source == src.id|stringformat:"s" %}selected{% endif %}>{{ src.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Status</label>
+                <select name="acknowledged" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="0" {% if filters.acknowledged == "0" %}selected{% endif %}>Unacknowledged</option>
+                    <option value="1" {% if filters.acknowledged == "1" %}selected{% endif %}>Acknowledged</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-1">
+                <label class="form-label small mb-1">From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-6 col-md-1">
+                <label class="form-label small mb-1">To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-12 col-md-1">
+                <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>CVE ID</th>
+                        <th>Severity</th>
+                        <th>CVSS3</th>
+                        <th>CWE</th>
+                        <th>Public Date</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cve in page %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'cves:cve_detail' cve.id %}" class="fw-semibold text-decoration-none">
+                                {{ cve.cve_id }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ cve.severity_color }} text-{{ cve.severity }}">
+                                {{ cve.severity|title }}
+                            </span>
+                        </td>
+                        <td>{{ cve.cvss3_score|default:"—" }}</td>
+                        <td><small class="text-muted">{{ cve.cwe|default:"—" }}</small></td>
+                        <td><small>{{ cve.public_date|date:"d M Y"|default:"—" }}</small></td>
+                        <td><small class="text-muted">{{ cve.source.name|default:"—" }}</small></td>
+                        <td>
+                            {% if cve.acknowledged %}
+                                <span class="badge bg-success">Acknowledged</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Open</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_staff %}
+                            {% if cve.acknowledged %}
+                            <button class="btn btn-xs btn-outline-secondary unack-btn"
+                                    data-cve-id="{{ cve.id }}" title="Unacknowledge">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            {% else %}
+                            <button class="btn btn-xs btn-outline-success ack-btn"
+                                    data-cve-id="{{ cve.id }}" title="Acknowledge">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">No CVEs found matching your filters.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if page.has_other_pages %}
+    <div class="card-footer d-flex justify-content-between align-items-center">
+        <small class="text-muted">Page {{ page.number }} of {{ page.paginator.num_pages }} &mdash; {{ page.paginator.count }} total</small>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page.has_previous %}
+                <li class="page-item"><a class="page-link" href="?{% querystring page=page.previous_page_number %}">‹</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ page.number }}</span></li>
+                {% if page.has_next %}
+                <li class="page-item"><a class="page-link" href="?{% querystring page=page.next_page_number %}">›</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Acknowledge modal -->
+<div class="modal fade" id="ackModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Acknowledge CVE</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Note (optional)</label>
+                <textarea class="form-control" id="ackNote" rows="3" placeholder="Reason or mitigation…"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmAckBtn">Acknowledge</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCsrf() {
+    return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrftoken='))?.split('=')[1]||'';
+}
+
+let pendingAckId = null;
+const ackModal = new bootstrap.Modal(document.getElementById('ackModal'));
+
+document.querySelectorAll('.ack-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        pendingAckId = this.dataset.cveId;
+        document.getElementById('ackNote').value = '';
+        ackModal.show();
+    });
+});
+
+document.getElementById('confirmAckBtn')?.addEventListener('click', function() {
+    const note = document.getElementById('ackNote').value;
+    fetch(`/cves/api/${pendingAckId}/acknowledge/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+        body: JSON.stringify({ note })
+    }).then(() => { ackModal.hide(); location.reload(); });
+});
+
+document.querySelectorAll('.unack-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.cveId;
+        if (!confirm('Unacknowledge this CVE?')) return;
+        fetch(`/cves/api/${id}/unacknowledge/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrf() }
+        }).then(() => location.reload());
+    });
+});
+</script>
+{% endblock %}

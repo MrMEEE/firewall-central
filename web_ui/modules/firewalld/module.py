@@ -693,22 +693,6 @@ class FirewalldModule(BaseModule):
                     'running': None,
                     'error': 'Status check not available for pull/push modes'
                 }
-            
-            if result.get('success'):
-                status_data = result.get('result', {})
-                return {
-                    'success': True,
-                    'running': status_data.get('running', False),
-                    'default_zone': status_data.get('default_zone'),
-                    'active_zones': status_data.get('active_zones', []),
-                    'error': None
-                }
-            else:
-                return {
-                    'success': False,
-                    'running': False,
-                    'error': result.get('error', 'Failed to get status')
-                }
         except Exception as e:
             return {
                 'success': False,
